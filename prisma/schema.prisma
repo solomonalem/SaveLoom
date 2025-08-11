@@ -26,22 +26,22 @@ model Post {
     @@index([name])
 }
 
-// Necessary for Next auth
+// NextAuth required models
 model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@unique([provider, providerAccountId])
 }
@@ -54,21 +54,305 @@ model Session {
     user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
-}
-
 model VerificationToken {
     identifier String
     token      String   @unique
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+// Core User Profile with Personal & Financial Information
+model User {
+    id            String    @id @default(cuid())
+    email         String    @unique
+    name          String?
+    image         String?
+    emailVerified DateTime?
+
+    // Personal Information (for personalized recommendations)
+    age           Int?
+    location      String? // For location-based recommendations
+    occupation    String?
+    maritalStatus String? // "single", "married", "divorced", "widowed"
+    dependents    Int?    @default(0) // Number of dependents
+
+    // Hobbies & Interests (for spending pattern analysis)
+    hobbies   String[] @default([]) // ["travel", "gaming", "fitness", "cooking"]
+    interests String[] @default([]) // ["technology", "sports", "music", "books"]
+    lifestyle String?  @default("moderate") // "frugal", "moderate", "luxury"
+
+    // Financial Profile
+    incomeRange   String? // "under_30k", "30k_50k", "50k_75k", "75k_100k", "100k_plus"
+    actualIncome  Decimal? @db.Decimal(12, 2) // Calculated from bank data
+    riskTolerance String?  @default("moderate") // "conservative", "moderate", "aggressive"
+
+    // Financial Goals (multiple goals with priorities)
+    primaryGoal      String? // "emergency_fund", "house", "retirement", "debt_payoff", "vacation"
+    goalTargetAmount Decimal?  @db.Decimal(12, 2)
+    goalTargetDate   DateTime?
+
+    // Onboarding & App State
+    onboardingCompleted Boolean @default(false)
+    onboardingStep      Int     @default(0) // Track progress through onboarding
+    hasConnectedBank    Boolean @default(false)
+    aiPersonaGenerated  Boolean @default(false)
+
+    // Plaid Integration
+    plaidAccessTokens Json? // Store multiple bank connections
+    lastPlaidSync     DateTime?
+
+    // AI Profile (generated from spending patterns)
+    spendingPersona String? // "saver", "spender", "impulse_buyer", "budget_conscious"
+    riskScore       Float? // 0-100 financial risk score
+    savingsRate     Float? // Percentage of income saved
+
+    // Related models
+    accounts        Account[]
+    sessions        Session[]
+    bankAccounts    BankAccount[]
+    transactions    Transaction[]
+    categories      Category[]
+    budgets         Budget[]
+    financialGoals  FinancialGoal[]
+    recommendations Recommendation[]
+    insights        AIInsight[]
+    notifications   Notification[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    Post      Post[]
+
+    @@index([email])
+}
+
+// Connected Bank Accounts via Plaid
+model BankAccount {
+    id             String @id @default(cuid())
+    userId         String
+    plaidAccountId String @unique
+    plaidItemId    String // Plaid item ID for this bank connection
+
+    // Account Details
+    accountName    String // "Chase Freedom Checking"
+    officialName   String? // Bank's official account name
+    accountType    String // "checking", "savings", "credit", "investment"
+    accountSubtype String? // "checking", "savings", "money_market", etc.
+
+    // Financial Data
+    currentBalance   Decimal  @db.Decimal(12, 2)
+    availableBalance Decimal? @db.Decimal(12, 2)
+    creditLimit      Decimal? @db.Decimal(12, 2) // For credit cards
+
+    // Bank Information
+    bankName String // "Chase Bank"
+    mask     String? // Last 4 digits "1234"
+
+    // Sync Information
+    lastSync   DateTime?
+    syncStatus String    @default("active") // "active", "error", "disconnected"
+    isActive   Boolean   @default(true)
+
+    user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    transactions Transaction[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([plaidItemId])
+}
+
+// All Financial Transactions
+model Transaction {
+    id                 String @id @default(cuid())
+    userId             String
+    bankAccountId      String
+    plaidTransactionId String @unique
+
+    // Transaction Details
+    amount         Decimal   @db.Decimal(12, 2) // Negative = expense, Positive = income
+    description    String
+    merchantName   String?
+    date           DateTime
+    authorizedDate DateTime?
+
+    // Categorization (AI + Manual)
+    category         String // "food_and_drink", "transportation", "entertainment"
+    subcategory      String? // "restaurants", "gas", "streaming_services"
+    personalCategory String? // User's custom category
+
+    // Location Data
+    location Json? // Store lat/lng and address if available
+
+    // AI Analysis
+    isRecurring        Boolean  @default(false)
+    recurringFrequency String? // "weekly", "monthly", "quarterly", "yearly"
+    confidence         Float? // AI categorization confidence (0-1)
+    isEssential        Boolean? // AI determines if expense is essential
+    couldSave          Boolean? // AI flags if user could save money here
+
+    // User Flags
+    isHidden  Boolean @default(false)
+    userNotes String?
+
+    user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    bankAccount BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([date])
+    @@index([category])
+    @@index([amount])
+}
+
+// Custom Spending Categories
+model Category {
+    id             String  @id @default(cuid())
+    userId         String
+    name           String
+    color          String  @default("#3B82F6")
+    icon           String  @default("💰")
+    isDefault      Boolean @default(false)
+    parentCategory String? // For subcategories
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, name])
+}
+
+// Budget Management
+model Budget {
+    id        String    @id @default(cuid())
+    userId    String
+    category  String
+    amount    Decimal   @db.Decimal(12, 2)
+    period    String    @default("monthly") // "weekly", "monthly", "yearly"
+    startDate DateTime
+    endDate   DateTime?
+    isActive  Boolean   @default(true)
+
+    // Budget Analysis
+    spent     Decimal? @db.Decimal(12, 2) // Current period spending
+    remaining Decimal? @db.Decimal(12, 2) // Remaining budget
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+}
+
+// Financial Goals (Emergency Fund, House Down Payment, etc.)
+model FinancialGoal {
+    id            String    @id @default(cuid())
+    userId        String
+    title         String // "Emergency Fund", "House Down Payment"
+    description   String?
+    targetAmount  Decimal   @db.Decimal(12, 2)
+    currentAmount Decimal   @default(0) @db.Decimal(12, 2)
+    targetDate    DateTime?
+    priority      Int       @default(1) // 1 = highest priority
+    category      String // "emergency", "purchase", "investment", "debt"
+
+    // Progress Tracking
+    monthlyContribution Decimal?  @db.Decimal(12, 2)
+    isCompleted         Boolean   @default(false)
+    completedDate       DateTime?
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+}
+
+// AI-Generated Recommendations
+model Recommendation {
+    id       String @id @default(cuid())
+    userId   String
+    type     String // "saving", "investment", "budget", "goal", "alert"
+    category String // "subscription_optimization", "spending_reduction", "investment_opportunity"
+
+    title       String // "Cancel unused Netflix subscription"
+    description String // Detailed explanation
+    impact      String // "Save $15/month"
+
+    // Recommendation Data
+    priority         String   @default("medium") // "low", "medium", "high", "urgent"
+    confidence       Float // AI confidence in recommendation (0-1)
+    potentialSavings Decimal? @db.Decimal(12, 2) // Monthly savings potential
+
+    // User Interaction
+    isRead       Boolean @default(false)
+    isActioned   Boolean @default(false)
+    isHidden     Boolean @default(false)
+    userFeedback String? // "helpful", "not_helpful", "already_doing"
+
+    // Metadata for recommendation logic
+    metadata Json? // Store additional data (transaction IDs, etc.)
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([priority])
+    @@index([type])
+}
+
+// AI-Generated Financial Insights
+model AIInsight {
+    id      String @id @default(cuid())
+    userId  String
+    type    String // "spending_trend", "income_analysis", "saving_opportunity"
+    title   String // "Your restaurant spending increased 30% this month"
+    content String // Detailed analysis
+
+    // Data Points
+    timeframe String // "this_month", "last_3_months", "this_year"
+    metric    String? // "spending", "income", "savings_rate"
+    value     Decimal? @db.Decimal(12, 2)
+    change    Float? // Percentage change
+
+    // Visual Data for Charts
+    chartData Json? // Store data for generating charts
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@index([type])
+}
+
+// In-App Notifications
+model Notification {
+    id      String @id @default(cuid())
+    userId  String
+    type    String // "budget_alert", "goal_milestone", "recommendation", "sync_error"
+    title   String
+    message String
+
+    // Notification State
+    isRead   Boolean @default(false)
+    priority String  @default("normal") // "low", "normal", "high"
+
+    // Action Data
+    actionType String? // "view_budget", "connect_bank", "view_recommendation"
+    actionData Json? // Additional data for the action
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@index([isRead])
 }
