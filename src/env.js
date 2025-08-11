@@ -17,6 +17,10 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
+    // Add Plaid server variables
+    PLAID_CLIENT_ID: z.string(),
+    PLAID_SECRET: z.string(),
+    PLAID_ENV: z.enum(["sandbox", "development", "production"]),
   },
 
   /**
@@ -24,8 +28,10 @@ export const env = createEnv({
    * isn't built with invalid env vars. To expose them to the client, prefix them with
    * `NEXT_PUBLIC_`.
    */
+
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    // Add Plaid client variables
+    NEXT_PUBLIC_PLAID_ENV: z.enum(["sandbox", "development", "production"]),
   },
 
   /**
@@ -38,7 +44,13 @@ export const env = createEnv({
     AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
+    // Add Plaid runtime variables
+    PLAID_CLIENT_ID: process.env.PLAID_CLIENT_ID,
+    PLAID_SECRET: process.env.PLAID_SECRET,
+    PLAID_ENV: process.env.PLAID_ENV,
+    NEXT_PUBLIC_PLAID_ENV: process.env.NEXT_PUBLIC_PLAID_ENV,
   },
+
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
    * useful for Docker builds.
