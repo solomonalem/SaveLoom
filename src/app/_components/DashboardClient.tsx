@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import PlaidLink from "./PlaidLink";
+import ConnectedAccounts from "./ConnectedAccounts";
 
 interface DashboardClientProps {
     user: {
@@ -93,6 +94,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                 View Dashboard
                             </Link>
                         </div>
+                    </div>
+                    <div className="mt-12 max-w-4xl mx-auto">
+                        <ConnectedAccounts />
                     </div>
 
                     {/* Quick Stats */}

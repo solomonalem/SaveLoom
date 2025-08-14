@@ -1,0 +1,34 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '~/server/auth';
+import { db } from '~/server/db';
+
+export async function GET(req: NextRequest) {
+    try {
+        const session = await auth();
+
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Fetch user's bank accounts
+        const accounts = await db.bankAccount.findMany({
+            where: {
+                userId: session.user.id,
+                isActive: true,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+
+        return NextResponse.json({
+            accounts,
+            count: accounts.length
+        });
+    } catch (error) {
+        console.error('Error fetching bank accounts:', error);
+        return NextResponse.json({
+            error: 'Failed to fetch bank accounts'
+        }, { status: 500 });
+    }
+}
