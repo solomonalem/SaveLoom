@@ -290,9 +290,11 @@ model Recommendation {
     potentialSavings Decimal? @db.Decimal(12, 2) // Monthly savings potential
 
     // User Interaction
-    isRead       Boolean @default(false)
-    isActioned   Boolean @default(false)
-    isHidden     Boolean @default(false)
+    isRead       Boolean   @default(false)
+    isActioned   Boolean   @default(false)
+    isHidden     Boolean   @default(false)
+    readAt       DateTime?
+    actionedAt   DateTime?
     userFeedback String? // "helpful", "not_helpful", "already_doing"
 
     // Metadata for recommendation logic
@@ -329,7 +331,13 @@ model AIInsight {
 
     createdAt DateTime @default(now())
 
-    @@index([userId])
+    isRead      Boolean   @default(false)
+    priority    String    @default("medium") // "low", "medium", "high", "urgent"
+    actionTaken Boolean   @default(false)
+    dismissedAt DateTime?
+
+    @@index([userId, isRead])
+    @@index([priority])
     @@index([type])
 }
 
