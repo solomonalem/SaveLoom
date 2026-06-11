@@ -1,4 +1,4 @@
-
+//src/app/api/recommendations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
@@ -50,4 +50,3 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// src/app/api/ai/recommendations/bulk/route.ts

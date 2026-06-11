@@ -1,3 +1,4 @@
+//src/app/api/bank-accounts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';

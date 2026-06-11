@@ -1,3 +1,4 @@
+//src/lib/plaid.ts
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
 import { env } from '~/env';
 

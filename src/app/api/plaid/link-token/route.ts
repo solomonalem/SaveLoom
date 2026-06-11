@@ -1,3 +1,4 @@
+//src/app/api/plaid/link-token/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { plaidClient } from '~/lib/plaid';

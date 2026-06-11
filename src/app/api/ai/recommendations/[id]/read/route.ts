@@ -1,3 +1,4 @@
+/// SaveLoom/src/app/api/ai/recommendations/[id]/read/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
