@@ -224,104 +224,6 @@ export default function RecommendationsDashboard() {
     const [selectedPriority, setSelectedPriority] = useState('all');
     const [selectedStatus, setSelectedStatus] = useState('all');
 
-    // Mock data for demonstration
-    const mockRecommendations: Recommendation[] = [
-        {
-            id: '1',
-            title: '🚨 Cancel unused Netflix subscription',
-            description: 'Your Netflix account shows no activity for the past 45 days, but you\'re still paying $15.99/month. Consider canceling or downgrading to save money.',
-            impact: 'Save $192 annually with no lifestyle impact since you\'re not currently using the service.',
-            priority: 'high',
-            confidence: 0.95,
-            potentialSavings: 15.99,
-            isActioned: false,
-            isRead: false,
-            metadata: {
-                effort: 'low',
-                timeframe: 'immediate',
-                steps: [
-                    'Log into your Netflix account',
-                    'Go to Account Settings',
-                    'Click "Cancel Membership"',
-                    'Confirm cancellation',
-                    'Set a reminder to resubscribe if needed'
-                ],
-                claudeGenerated: true
-            },
-            createdAt: '2025-08-16T10:00:00Z'
-        },
-        {
-            id: '2',
-            title: '💰 Set up automated savings transfer',
-            description: 'Based on your spending patterns, you could comfortably save an additional $200/month. Automating this transfer will help you reach your emergency fund goal 6 months faster.',
-            impact: 'Build emergency fund faster and develop consistent saving habits without thinking about it.',
-            priority: 'medium',
-            confidence: 0.88,
-            potentialSavings: 200,
-            isActioned: false,
-            isRead: true,
-            metadata: {
-                effort: 'low',
-                timeframe: 'this_week',
-                steps: [
-                    'Open your banking app or website',
-                    'Set up automatic transfer for $200/month',
-                    'Schedule it for 2 days after your paycheck',
-                    'Monitor for the first few months to ensure no overdrafts'
-                ],
-                claudeGenerated: true
-            },
-            createdAt: '2025-08-16T09:30:00Z'
-        },
-        {
-            id: '3',
-            title: '☕ Reduce coffee shop visits to 3x per week',
-            description: 'You\'re spending $156/month on coffee shops (averaging $6.50 per visit). Reducing to 3 visits per week could save you money while still enjoying your coffee routine.',
-            impact: 'Save approximately $75/month while maintaining some coffee shop enjoyment. Use saved money for debt payoff.',
-            priority: 'medium',
-            confidence: 0.82,
-            potentialSavings: 75,
-            isActioned: true,
-            isRead: true,
-            metadata: {
-                effort: 'medium',
-                timeframe: 'this_month',
-                steps: [
-                    'Calculate current weekly coffee shop visits',
-                    'Identify which 3 days work best for your schedule',
-                    'Invest in quality coffee for home brewing',
-                    'Set up a weekly coffee shop budget of $60',
-                    'Track progress for the first month'
-                ],
-                claudeGenerated: true
-            },
-            createdAt: '2025-08-15T14:20:00Z'
-        },
-        {
-            id: '4',
-            title: '📊 Increase 401k contribution to get full employer match',
-            description: 'You\'re currently contributing 3% but your employer matches up to 6%. You\'re leaving free money on the table - increase your contribution to get the full match.',
-            impact: 'Gain an additional $1,800/year in employer matching funds. This is a 100% instant return on investment.',
-            priority: 'urgent',
-            confidence: 0.98,
-            potentialSavings: 150,
-            isActioned: false,
-            isRead: false,
-            metadata: {
-                effort: 'low',
-                timeframe: 'immediate',
-                steps: [
-                    'Log into your company\'s 401k portal',
-                    'Increase contribution percentage to 6%',
-                    'Verify the change will take effect next payroll',
-                    'Update your budget to account for the reduced take-home pay',
-                    'Monitor your next few paystubs to confirm'
-                ],
-                claudeGenerated: true
-            },
-            createdAt: '2025-08-16T08:15:00Z'
-        }
-    ];
 
     useEffect(() => {
         fetchRecommendations();
@@ -337,18 +239,11 @@ export default function RecommendationsDashboard() {
                 const data = await response.json();
                 if (data.recommendations && data.recommendations.length > 0) {
                     setRecommendations(data.recommendations);
-                } else {
-                    // Use mock data if no real recommendations
-                    setRecommendations(mockRecommendations);
                 }
-            } else {
-                // Use mock data if API fails
-                setRecommendations(mockRecommendations);
             }
         } catch (error) {
             console.error('Error fetching recommendations:', error);
-            // Use mock data as fallback
-            setRecommendations(mockRecommendations);
+
         } finally {
             setTimeout(() => setLoading(false), 1000); // Simulate loading time
         }
