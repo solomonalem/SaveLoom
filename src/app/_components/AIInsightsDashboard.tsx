@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar, Target, Coffee, CreditCard, Lightbulb, RefreshCw, Trash } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar, Target, Coffee, CreditCard, Lightbulb, RefreshCw, Trash, Heart } from 'lucide-react';
 import RecommendationsDashboard from './RecommendationsDashboard';
+import FinancialHealthDashboard from './FinancialHealthDashboard'; // Import the new component
 
 interface AIInsight {
     id: string;
@@ -114,14 +115,13 @@ const InsightCard = ({ insight, onDelete }: { insight: AIInsight; onDelete: (id:
                     <p className="text-gray-600 text-sm leading-relaxed mb-3">
                         {insight.content}
                     </p>
-                    {/* Delete button - add this */}
+                    {/* Delete button */}
                     <div className="flex items-center justify-end mb-2">
                         <button
                             onClick={() => onDelete(insight.id)}
                             className="opacity-30 bg-gray-300 text-gray-600 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-red-100 rounded-lg hover:text-red-500 hover:text-red-700"
                             title="Delete insight"
                         >
-
                             <Trash className="w-4 h-4" />
                         </button>
                     </div>
@@ -179,9 +179,8 @@ export default function AIInsightsDashboard() {
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState('all');
-    const [activeTab, setActiveTab] = useState('insights');
+    const [activeTab, setActiveTab] = useState('insights'); // Can be 'insights', 'recommendations', or 'health'
     const [generating, setGenerating] = useState(false);
-
 
     // Delete insight handler
     const handleDeleteInsight = async (insightId: string) => {
@@ -204,67 +203,9 @@ export default function AIInsightsDashboard() {
         }
     };
 
-    // Mock data for demonstration
-    const mockInsights: AIInsight[] = [
-        {
-            id: '1',
-            type: 'spending_trend',
-            title: '📈 Food and Drink spending increased 32%',
-            content: 'Your food and drink spending has increased by 32.1% this month compared to last month. Current: $487.50, Previous: $369.20.',
-            timeframe: 'this_month',
-            metric: 'spending',
-            value: 487.50,
-            change: 32.1,
-            createdAt: '2025-08-14T10:00:00Z'
-        },
-        {
-            id: '2',
-            type: 'subscription_optimization',
-            title: '💳 You have 6 subscriptions costing $127.94/month',
-            content: 'We detected recurring charges from services like Netflix, Spotify, Amazon Prime. Review these subscriptions to ensure you\'re still using them.',
-            timeframe: 'this_month',
-            metric: 'subscription_cost',
-            value: 127.94,
-            createdAt: '2025-08-14T09:30:00Z'
-        },
-        {
-            id: '3',
-            type: 'budget_alert',
-            title: '🚨 Entertainment budget almost exceeded',
-            content: 'You\'ve spent 94% of your Entertainment budget this month. Consider reducing spending in this category.',
-            timeframe: 'monthly',
-            metric: 'budget_usage',
-            value: 94,
-            createdAt: '2025-08-14T09:15:00Z'
-        },
-        {
-            id: '4',
-            type: 'saving_opportunity',
-            title: '☕ Small purchases add up: $156.75 this month',
-            content: 'You\'ve made 23 small purchases averaging $6.81 each. Consider setting a weekly limit for discretionary spending.',
-            timeframe: 'this_month',
-            metric: 'small_purchases',
-            value: 156.75,
-            createdAt: '2025-08-14T09:00:00Z'
-        },
-        {
-            id: '5',
-            type: 'budget_performance',
-            title: '🎉 Great job on Transportation spending',
-            content: 'You\'re doing well with your Transportation budget, using only 43% so far this month.',
-            timeframe: 'monthly',
-            metric: 'budget_usage',
-            value: 43,
-            createdAt: '2025-08-14T08:45:00Z'
-        }
-    ];
-
     useEffect(() => {
         fetchInsights();
     }, []);
-
-
-    // Replace your fetchInsights function with this:
 
     const fetchInsights = async () => {
         try {
@@ -276,7 +217,6 @@ export default function AIInsightsDashboard() {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('🔍 DADATA--', data); // Your existing log
 
                 // Check multiple possible response structures
                 let realInsights = [];
@@ -289,21 +229,18 @@ export default function AIInsightsDashboard() {
                     realInsights = data.data;
                 }
 
-
                 if (realInsights.length > 0) {
                     setInsights(realInsights);
-                } else {
-                    setInsights(mockInsights);
                 }
             } else {
                 console.error('❌ API failed with status:', response.status);
                 const errorText = await response.text();
                 console.error('❌ Error response:', errorText);
-                setInsights(mockInsights);
+
             }
         } catch (error) {
             console.error('❌ Error fetching insights:', error);
-            setInsights(mockInsights);
+
         } finally {
             setLoading(false);
         }
@@ -443,26 +380,6 @@ export default function AIInsightsDashboard() {
                             >
                                 Budgets
                             </Link>
-                            <div className="flex items-center space-x-1 bg-white/60 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/50">
-                                <button
-                                    onClick={() => setActiveTab('insights')}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${activeTab === 'insights'
-                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
-                                        : 'text-gray-600 hover:bg-white/50'
-                                        }`}
-                                >
-                                    🧠 Insights
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('recommendations')}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${activeTab === 'recommendations'
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                        : 'text-gray-600 hover:bg-white/50'
-                                        }`}
-                                >
-                                    🎯 Recommendations
-                                </button>
-                            </div>
                             <button
                                 onClick={generateInsights}
                                 disabled={generating}
@@ -489,9 +406,6 @@ export default function AIInsightsDashboard() {
                                 <span>Powered by Claude AI</span>
                             </div>
                         </div>
-                        <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl shadow-2xl">
-                            <Brain className="w-12 h-12 text-white" />
-                        </div>
                     </div>
                     <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
                         AI Financial Insights
@@ -501,14 +415,14 @@ export default function AIInsightsDashboard() {
                     </p>
                 </div>
 
-                {/* Tab Navigation */}
+                {/* Tab Navigation - Updated with Health Tab */}
                 <div className="flex justify-center mb-8">
                     <div className="flex items-center space-x-1 bg-white/60 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/50">
                         <button
                             onClick={() => setActiveTab('insights')}
                             className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'insights'
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
-                                    : 'text-gray-600 hover:bg-white/50'
+                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
+                                : 'text-gray-600 hover:bg-white/50'
                                 }`}
                         >
                             <Brain className="w-4 h-4" />
@@ -517,12 +431,22 @@ export default function AIInsightsDashboard() {
                         <button
                             onClick={() => setActiveTab('recommendations')}
                             className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'recommendations'
-                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                    : 'text-gray-600 hover:bg-white/50'
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                                : 'text-gray-600 hover:bg-white/50'
                                 }`}
                         >
                             <Target className="w-4 h-4" />
                             <span>Recommendations</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('health')}
+                            className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'health'
+                                ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+                                : 'text-gray-600 hover:bg-white/50'
+                                }`}
+                        >
+                            <Heart className="w-4 h-4" />
+                            <span>Health Score</span>
                         </button>
                     </div>
                 </div>
@@ -608,8 +532,10 @@ export default function AIInsightsDashboard() {
                             </div>
                         )}
                     </>
-                ) : (
+                ) : activeTab === 'recommendations' ? (
                     <RecommendationsDashboard />
+                ) : (
+                    <FinancialHealthDashboard />
                 )}
             </div>
         </div>
