@@ -1,3 +1,4 @@
+//prisma/schema.prisma
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -119,11 +120,14 @@ model User {
     insights        AIInsight[]
     notifications   Notification[]
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    Post      Post[]
+    createdAt         DateTime           @default(now())
+    updatedAt         DateTime           @updatedAt
+    Post              Post[]
+    goalContributions GoalContribution[]
 
     @@index([email])
+    @@index([onboardingCompleted]) // For onboarding analytics
+    @@index([hasConnectedBank]) // For user segmentation
 }
 
 // Connected Bank Accounts via Plaid
@@ -161,6 +165,7 @@ model BankAccount {
 
     @@index([userId])
     @@index([plaidItemId])
+    @@index([userId, isActive]) // For fetching active accounts
 }
 
 // All Financial Transactions
@@ -192,6 +197,11 @@ model Transaction {
     isEssential        Boolean? // AI determines if expense is essential
     couldSave          Boolean? // AI flags if user could save money here
 
+    // Link transactions to goal contributions
+    goalContribution   GoalContribution?
+    isGoalContribution Boolean           @default(false)
+    linkedGoalId       String?
+
     // User Flags
     isHidden  Boolean @default(false)
     userNotes String?
@@ -202,10 +212,12 @@ model Transaction {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([userId])
-    @@index([date])
-    @@index([category])
-    @@index([amount])
+    @@index([date, amount]) // For analytics
+    @@index([userId, date]) // For date-range queries in analytics
+    @@index([userId, category]) // For category grouping in budgets
+    @@index([userId, amount]) // For income/expense filtering
+    @@index([bankAccountId, date]) // For account-specific transaction history
+    @@index([category, date]) // For category trends over time
 }
 
 // Custom Spending Categories
@@ -245,7 +257,10 @@ model Budget {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    @@index([userId])
+    @@index([userId, isActive]) // For fetching active budgets
+    @@index([userId, category]) // For category-specific budget lookup
+    @@index([category, isActive]) // For active budgets by category
+    @@index([startDate, endDate]) // For period overlap checks
 }
 
 // Financial Goals (Emergency Fund, House Down Payment, etc.)
@@ -260,10 +275,13 @@ model FinancialGoal {
     priority      Int       @default(1) // 1 = highest priority
     category      String // "emergency", "purchase", "investment", "debt"
 
+    linkedAccountIds    String[]  @default([]) // Array of bank account IDs
     // Progress Tracking
     monthlyContribution Decimal?  @db.Decimal(12, 2)
     isCompleted         Boolean   @default(false)
     completedDate       DateTime?
+
+    contributions GoalContribution[]
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -271,6 +289,37 @@ model FinancialGoal {
     updatedAt DateTime @updatedAt
 
     @@index([userId])
+    @@index([userId, isCompleted]) // For active vs completed goals
+    @@index([userId, priority]) // For priority-sorted goals
+}
+
+// Track individual contributions to goals
+model GoalContribution {
+    id     String  @id @default(cuid())
+    userId String
+    goalId String
+    amount Decimal @db.Decimal(12, 2)
+
+    // Source tracking
+    sourceType      String // "manual", "transaction", "automatic", "transfer"
+    sourceAccountId String? // Which bank account it came from
+    transactionId   String? // Link to transaction if applicable
+
+    // Metadata
+    note          String?
+    contributedAt DateTime @default(now())
+
+    // Relations
+    goal        FinancialGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    transaction Transaction?  @relation(fields: [transactionId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    @@index([userId])
+    @@index([goalId])
+    @@index([userId, goalId])
+    @@index([contributedAt])
 }
 
 // AI-Generated Recommendations
@@ -308,6 +357,8 @@ model Recommendation {
     @@index([userId])
     @@index([priority])
     @@index([type])
+    @@index([userId, isActioned])
+    @@index([userId, priority])
 }
 
 // AI-Generated Financial Insights
@@ -339,6 +390,8 @@ model AIInsight {
     @@index([userId, isRead])
     @@index([priority])
     @@index([type])
+    @@index([userId, createdAt])
+    @@index([userId, type])
 }
 
 // In-App Notifications
