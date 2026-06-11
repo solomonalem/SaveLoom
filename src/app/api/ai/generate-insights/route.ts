@@ -1,7 +1,9 @@
+//src/app/api/ai/generate-insights/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
 import AIInsightsEngine from '~/lib/ai-insights-engine'; // Now uses Claude!
+import { env } from '~/env';
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,7 +14,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if Claude API key is configured
-        if (!process.env.ANTHROPIC_API_KEY) {
+        if (!env.ANTHROPIC_API_KEY) {
             console.error('❌ ANTHROPIC_API_KEY not configured');
             return NextResponse.json(
                 { error: 'Claude AI not configured. Please add ANTHROPIC_API_KEY to environment.' },
