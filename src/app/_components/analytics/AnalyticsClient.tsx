@@ -1,3 +1,4 @@
+//src/app/_components/analytics/AnalyticsClient.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer, Area, AreaChart } from 'recharts';
@@ -24,6 +25,34 @@ interface BankAccount {
     accountType: string;
     currentBalance: number;
     mask: string;
+}
+
+interface AnalyticsData {
+    accounts: BankAccount[];
+    transactions: Transaction[];
+    metrics: {
+        totalBalance: number;
+        totalIncome: number;
+        totalExpenses: number;
+        netCashFlow: number;
+        savingsRate: number;
+        transactionCount: number;
+    };
+    chartData: {
+        categoryBreakdown: Array<{
+            name: string;
+            value: number;
+            emoji: string;
+            fill: string;
+            transactions: number;
+        }>;
+        dailyData: Array<{
+            date: string;
+            income: number;
+            expenses: number;
+            net: number;
+        }>;
+    };
 }
 
 const categoryEmojis: { [key: string]: string } = {
@@ -97,91 +126,49 @@ const StatCard = ({ title, value, icon: Icon, trend, trendValue, gradient, delay
 export default function RefinedAnalyticsDashboard() {
     const [loading, setLoading] = useState(true);
     const [timeframe, setTimeframe] = useState('30');
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [accounts, setAccounts] = useState<BankAccount[]>([]);
+    const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Mock data for demonstration
-    useEffect(() => {
-        const mockTransactions: Transaction[] = [
-            { id: '1', amount: -45.50, description: 'Starbucks', category: 'Food and Drink', date: '2025-08-10' },
-            { id: '2', amount: -120.00, description: 'Grocery Store', category: 'Food and Drink', date: '2025-08-09' },
-            { id: '3', amount: -25.99, description: 'Netflix', category: 'Entertainment', date: '2025-08-08' },
-            { id: '4', amount: 3200.00, description: 'Salary', category: 'Transfer', date: '2025-08-07' },
-            { id: '5', amount: -85.75, description: 'Gas Station', category: 'Transportation', date: '2025-08-07' },
-            { id: '6', amount: -299.99, description: 'Amazon', category: 'Shops', date: '2025-08-06' },
-            { id: '7', amount: -15.50, description: 'Parking', category: 'Transportation', date: '2025-08-05' },
-            { id: '8', amount: -75.00, description: 'Restaurant', category: 'Food and Drink', date: '2025-08-04' },
-        ];
+    // Fetch real analytics data
+    const fetchAnalyticsData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            console.log('📊 Fetching analytics data for timeframe:', timeframe);
 
-        const mockAccounts: BankAccount[] = [
-            { id: '1', accountName: 'Checking', bankName: 'Chase', accountType: 'checking', currentBalance: 5420.75, mask: '****1234' },
-            { id: '2', accountName: 'Savings', bankName: 'Chase', accountType: 'savings', currentBalance: 12850.30, mask: '****5678' },
-        ];
+            const response = await fetch(`/api/analytics?timeframe=${timeframe}`);
 
-        setTimeout(() => {
-            setTransactions(mockTransactions);
-            setAccounts(mockAccounts);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Analytics data received:', data);
+                setAnalyticsData(data);
+            } else {
+                console.error('❌ Failed to fetch analytics data:', response.status);
+                setError('Failed to load analytics data');
+
+            }
+        } catch (error) {
+            console.error('❌ Error fetching analytics data:', error);
+            setError('Error loading analytics data');
+        } finally {
             setLoading(false);
-        }, 1500);
-    }, []);
-
-    // Filter transactions by timeframe
-    const filteredTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeframe));
-        return transactionDate >= cutoffDate;
-    });
-
-    // Calculate metrics
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
-    const expenses = filteredTransactions.filter(t => t.amount < 0);
-    const income = filteredTransactions.filter(t => t.amount > 0);
-    const totalExpenses = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    const totalIncome = income.reduce((sum, t) => sum + t.amount, 0);
-    const netCashFlow = totalIncome - totalExpenses;
-    const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
-
-    // Prepare chart data
-    const categoryTotals = expenses.reduce((acc, transaction) => {
-        const category = transaction.category || 'Other';
-        if (!acc[category]) {
-            acc[category] = { amount: 0, transactions: 0 };
         }
-        acc[category].amount += Math.abs(transaction.amount);
-        acc[category].transactions += 1;
-        return acc;
-    }, {} as { [key: string]: { amount: number; transactions: number } });
+    };
 
-    const pieData = Object.entries(categoryTotals)
-        .map(([category, data], index) => ({
-            name: category,
-            value: data.amount,
-            emoji: categoryEmojis[category] || '💰',
-            fill: colors.primary[index % colors.primary.length]
-        }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 6);
+    // Fetch data on component mount and timeframe change
+    useEffect(() => {
+        fetchAnalyticsData();
+    }, [timeframe]);
 
-    // Daily data for the last 7 days
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (6 - i));
-        return date.toISOString().split('T')[0];
-    });
+    // Handle refresh button
+    const handleRefresh = () => {
+        fetchAnalyticsData();
+    };
 
-    const dailyData = last7Days.map(date => {
-        const dayTransactions = filteredTransactions.filter(t => t.date.split('T')[0] === date);
-        const dayIncome = dayTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-        const dayExpenses = dayTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-        return {
-            date: new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-            income: dayIncome,
-            expenses: dayExpenses,
-            net: dayIncome - dayExpenses
-        };
-    });
+    // Handle timeframe change
+    const handleTimeframeChange = (newTimeframe: string) => {
+        setTimeframe(newTimeframe);
+    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -228,10 +215,37 @@ export default function RefinedAnalyticsDashboard() {
         );
     }
 
+    if (!analyticsData) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Unable to Load Analytics</h3>
+                    <p className="text-gray-600 mb-6">There was an error loading your financial data.</p>
+                    <button
+                        onClick={fetchAnalyticsData}
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:shadow-xl transition-all duration-300 font-semibold"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const { accounts, transactions, metrics, chartData } = analyticsData;
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
             {/* Subtle Pattern Overlay */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+
+            {/* Error Banner */}
+            {error && (
+                <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 text-center">
+                    <span className="text-sm">⚠️ {error} - Showing sample data for demonstration</span>
+                </div>
+            )}
 
             {/* Ultra-Refined Navigation */}
             <nav className="relative bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50 z-10">
@@ -252,7 +266,7 @@ export default function RefinedAnalyticsDashboard() {
                             <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/50">
                                 <select
                                     value={timeframe}
-                                    onChange={(e) => setTimeframe(e.target.value)}
+                                    onChange={(e) => handleTimeframeChange(e.target.value)}
                                     className="border-0 bg-transparent px-4 py-2 text-gray-700 font-semibold focus:outline-none"
                                 >
                                     <option value="7">Last 7 days</option>
@@ -261,8 +275,12 @@ export default function RefinedAnalyticsDashboard() {
                                     <option value="365">Last year</option>
                                 </select>
                             </div>
-                            <button className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-105 font-semibold flex items-center space-x-2">
-                                <RefreshCw className="w-4 h-4" />
+                            <button
+                                onClick={handleRefresh}
+                                disabled={loading}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-105 font-semibold flex items-center space-x-2 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                                 <span>Refresh</span>
                             </button>
                         </div>
@@ -275,30 +293,30 @@ export default function RefinedAnalyticsDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                     <StatCard
                         title="Total Balance"
-                        value={formatCurrency(totalBalance)}
+                        value={formatCurrency(metrics.totalBalance)}
                         icon={DollarSign}
                         gradient={colors.gradients.success}
                         delay={0}
                     />
                     <StatCard
                         title="Net Cash Flow"
-                        value={formatCurrency(netCashFlow)}
-                        icon={netCashFlow >= 0 ? TrendingUp : TrendingDown}
-                        trend={netCashFlow >= 0 ? 'up' : 'down'}
-                        trendValue={`${Math.abs(savingsRate).toFixed(1)}%`}
-                        gradient={netCashFlow >= 0 ? colors.gradients.success : colors.gradients.danger}
+                        value={formatCurrency(metrics.netCashFlow)}
+                        icon={metrics.netCashFlow >= 0 ? TrendingUp : TrendingDown}
+                        trend={metrics.netCashFlow >= 0 ? 'up' : 'down'}
+                        trendValue={`${Math.abs(metrics.savingsRate).toFixed(1)}%`}
+                        gradient={metrics.netCashFlow >= 0 ? colors.gradients.success : colors.gradients.danger}
                         delay={100}
                     />
                     <StatCard
                         title="Monthly Spending"
-                        value={formatCurrency(totalExpenses)}
+                        value={formatCurrency(metrics.totalExpenses)}
                         icon={Activity}
                         gradient={colors.gradients.warning}
                         delay={200}
                     />
                     <StatCard
                         title="Transactions"
-                        value={filteredTransactions.length.toString()}
+                        value={metrics.transactionCount.toString()}
                         icon={Calendar}
                         gradient={colors.gradients.info}
                         delay={300}
@@ -315,11 +333,11 @@ export default function RefinedAnalyticsDashboard() {
                             </h3>
                             <div className="text-3xl">🎯</div>
                         </div>
-                        {pieData.length > 0 ? (
+                        {chartData.categoryBreakdown.length > 0 ? (
                             <ResponsiveContainer width="100%" height={350}>
                                 <PieChart>
                                     <Pie
-                                        data={pieData}
+                                        data={chartData.categoryBreakdown}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={60}
@@ -327,7 +345,7 @@ export default function RefinedAnalyticsDashboard() {
                                         paddingAngle={3}
                                         dataKey="value"
                                     >
-                                        {pieData.map((entry, index) => (
+                                        {chartData.categoryBreakdown.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.fill} />
                                         ))}
                                     </Pie>
@@ -344,6 +362,7 @@ export default function RefinedAnalyticsDashboard() {
                             <div className="text-center py-16 text-gray-500">
                                 <div className="text-6xl mb-4">📊</div>
                                 <p className="text-lg font-semibold">No spending data yet</p>
+                                <p className="text-sm mt-2">Connect your bank accounts to see spending breakdown</p>
                             </div>
                         )}
                     </div>
@@ -356,8 +375,59 @@ export default function RefinedAnalyticsDashboard() {
                             </h3>
                             <div className="text-3xl">📈</div>
                         </div>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        {chartData.dailyData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={chartData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
+                                    <XAxis
+                                        dataKey="date"
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        fontWeight={600}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        stroke="#64748b"
+                                        fontSize={12}
+                                        fontWeight={600}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tickFormatter={(value) => `${value.toLocaleString()}`}
+                                    />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Legend wrapperStyle={{ fontSize: '14px', fontWeight: '600' }} />
+                                    <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} name="Income" />
+                                    <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="text-center py-16 text-gray-500">
+                                <div className="text-6xl mb-4">📈</div>
+                                <p className="text-lg font-semibold">No transaction data yet</p>
+                                <p className="text-sm mt-2">Your daily cash flow will appear here</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Stunning Area Chart */}
+                <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                            Net Cash Flow Trend
+                        </h3>
+                        <div className="text-3xl">🌊</div>
+                    </div>
+                    {chartData.dailyData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={400}>
+                            <AreaChart data={chartData.dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <defs>
+                                    <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
                                 <XAxis
                                     dataKey="date"
@@ -373,85 +443,89 @@ export default function RefinedAnalyticsDashboard() {
                                     fontWeight={600}
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={(value) => `$${value.toLocaleString()}`}
+                                    tickFormatter={(value) => `${value.toLocaleString()}`}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ fontSize: '14px', fontWeight: '600' }} />
-                                <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} name="Income" />
-                                <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
-                            </BarChart>
+                                <Area
+                                    type="monotone"
+                                    dataKey="net"
+                                    stroke="#6366f1"
+                                    strokeWidth={3}
+                                    fill="url(#colorNet)"
+                                    name="Net Cash Flow"
+                                />
+                            </AreaChart>
                         </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Stunning Area Chart */}
-                <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                            Net Cash Flow Trend
-                        </h3>
-                        <div className="text-3xl">🌊</div>
-                    </div>
-                    <ResponsiveContainer width="100%" height={400}>
-                        <AreaChart data={dailyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <defs>
-                                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.5} />
-                            <XAxis
-                                dataKey="date"
-                                stroke="#64748b"
-                                fontSize={12}
-                                fontWeight={600}
-                                axisLine={false}
-                                tickLine={false}
-                            />
-                            <YAxis
-                                stroke="#64748b"
-                                fontSize={12}
-                                fontWeight={600}
-                                axisLine={false}
-                                tickLine={false}
-                                tickFormatter={(value) => `$${value.toLocaleString()}`}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Area
-                                type="monotone"
-                                dataKey="net"
-                                stroke="#6366f1"
-                                strokeWidth={3}
-                                fill="url(#colorNet)"
-                                name="Net Cash Flow"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    ) : (
+                        <div className="text-center py-16 text-gray-500">
+                            <div className="text-6xl mb-4">🌊</div>
+                            <p className="text-lg font-semibold">No trend data yet</p>
+                            <p className="text-sm mt-2">Your cash flow trends will appear here</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Account Overview Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {accounts.map((account, index) => (
-                        <div key={account.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500 hover:scale-[1.01]">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h4 className="text-lg font-bold text-gray-900">{account.accountName}</h4>
-                                    <p className="text-sm text-gray-600">{account.bankName} •••• {account.mask}</p>
+                    {accounts.length > 0 ? (
+                        accounts.map((account, index) => (
+                            <div key={account.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500 hover:scale-[1.01]">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h4 className="text-lg font-bold text-gray-900">{account.accountName}</h4>
+                                        <p className="text-sm text-gray-600">{account.bankName} •••• {account.mask}</p>
+                                        <p className="text-xs text-gray-500 mt-1 capitalize">{account.accountType}</p>
+                                    </div>
+                                    <div className="text-3xl">🏦</div>
                                 </div>
-                                <div className="text-3xl">🏦</div>
+                                <p className={`text-3xl font-black bg-gradient-to-r ${colors.gradients.success} bg-clip-text text-transparent`}>
+                                    {formatCurrency(account.currentBalance)}
+                                </p>
+                                <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full bg-gradient-to-r ${colors.gradients.success} rounded-full transition-all duration-1000`}
+                                        style={{ width: `${Math.min((account.currentBalance / 20000) * 100, 100)}%` }}
+                                    ></div>
+                                </div>
                             </div>
-                            <p className={`text-3xl font-black bg-gradient-to-r ${colors.gradients.success} bg-clip-text text-transparent`}>
-                                {formatCurrency(account.currentBalance)}
+                        ))
+                    ) : (
+                        <div className="col-span-full bg-white/70 backdrop-blur-xl p-12 rounded-3xl shadow-xl border border-white/40 text-center">
+                            <div className="text-6xl mb-4">🏦</div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">No Bank Accounts Connected</h3>
+                            <p className="text-gray-600 mb-6">Connect your bank accounts to see detailed analytics and insights.</p>
+                            <button className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold">
+                                Connect Bank Account
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {/* Analytics Summary */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-3xl shadow-xl text-white">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-2xl font-bold mb-2">📊 Analytics Summary</h3>
+                            <p className="text-indigo-100 mb-4">
+                                Showing data for the last {timeframe} days • {metrics.transactionCount} transactions analyzed
                             </p>
-                            <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full bg-gradient-to-r ${colors.gradients.success} rounded-full transition-all duration-1000`}
-                                    style={{ width: `${Math.min((account.currentBalance / 20000) * 100, 100)}%` }}
-                                ></div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-indigo-200">Savings Rate:</span>
+                                    <div className="font-bold text-lg">{metrics.savingsRate.toFixed(1)}%</div>
+                                </div>
+                                <div>
+                                    <span className="text-indigo-200">Avg. Daily Spending:</span>
+                                    <div className="font-bold text-lg">{formatCurrency(metrics.totalExpenses / parseInt(timeframe))}</div>
+                                </div>
+                                <div>
+                                    <span className="text-indigo-200">Account Balance:</span>
+                                    <div className="font-bold text-lg">{formatCurrency(metrics.totalBalance)}</div>
+                                </div>
                             </div>
                         </div>
-                    ))}
+                        <div className="text-6xl opacity-50">📈</div>
+                    </div>
                 </div>
             </div>
         </div>
