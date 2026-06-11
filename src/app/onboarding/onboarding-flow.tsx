@@ -1,3 +1,4 @@
+//src/app/onboarding/onboarding-flow.tsx
 "use client";
 
 import { useState } from "react";
@@ -17,6 +18,9 @@ interface OnboardingFlowProps {
 export default function OnboardingFlow({ user }: OnboardingFlowProps) {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
+
     const [formData, setFormData] = useState({
         age: "",
         location: "",
@@ -46,6 +50,8 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
     const handleInputChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        // Clear error when user starts typing
+        if (error) setError("");
     };
 
     const handleArrayToggle = (field: "hobbies" | "interests", value: string) => {
@@ -55,29 +61,87 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                 ? prev[field].filter(item => item !== value)
                 : [...prev[field], value]
         }));
+        if (error) setError("");
+    };
+
+    const validateStep = (step: number): boolean => {
+        switch (step) {
+            case 1:
+                if (!formData.age || !formData.location || !formData.occupation || !formData.maritalStatus) {
+                    setError("Please fill in all required fields");
+                    return false;
+                }
+                break;
+            case 2:
+                if (formData.hobbies.length === 0 || formData.interests.length === 0) {
+                    setError("Please select at least one hobby and one interest");
+                    return false;
+                }
+                break;
+            case 3:
+                if (!formData.incomeRange) {
+                    setError("Please select your income range");
+                    return false;
+                }
+                break;
+            case 4:
+                if (!formData.primaryGoal) {
+                    setError("Please select your primary financial goal");
+                    return false;
+                }
+                break;
+        }
+        return true;
     };
 
     const handleNext = () => {
+        if (!validateStep(currentStep)) {
+            return;
+        }
+
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
+            setError("");
         }
     };
 
     const handlePrevious = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
+            setError("");
         }
     };
 
     const handleComplete = async () => {
-        try {
-            // TODO: Save to database via tRPC
-            console.log("Onboarding data:", formData);
+        if (!validateStep(currentStep)) {
+            return;
+        }
 
-            // For now, just redirect to dashboard
-            router.push("/");
+        setIsLoading(true);
+        setError("");
+
+        try {
+            const response = await fetch('/api/onboarding', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to save onboarding data');
+            }
+
+            // Success! Redirect to dashboard
+            router.push("/?onboarding=complete");
         } catch (error) {
             console.error("Error saving onboarding data:", error);
+            setError(error instanceof Error ? error.message : "Failed to save your profile. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -92,18 +156,24 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Age <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="number"
                                     value={formData.age}
                                     onChange={(e) => handleInputChange("age", e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="25"
+                                    min="18"
+                                    max="100"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Location <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.location}
@@ -115,7 +185,9 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Occupation</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Occupation <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="text"
                                 value={formData.occupation}
@@ -127,7 +199,9 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Marital Status</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Marital Status <span className="text-red-500">*</span>
+                                </label>
                                 <select
                                     value={formData.maritalStatus}
                                     onChange={(e) => handleInputChange("maritalStatus", e.target.value)}
@@ -152,7 +226,7 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                     <option value="1">1</option>
                                     <option value="2">2</option>
                                     <option value="3">3</option>
-                                    <option value="4+">4+</option>
+                                    <option value="4">4+</option>
                                 </select>
                             </div>
                         </div>
@@ -168,7 +242,7 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Hobbies (Select all that apply)
+                                Hobbies <span className="text-red-500">*</span> (Select all that apply)
                             </label>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {hobbiesOptions.map((hobby) => (
@@ -177,8 +251,8 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                         type="button"
                                         onClick={() => handleArrayToggle("hobbies", hobby)}
                                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${formData.hobbies.includes(hobby)
-                                                ? "bg-blue-500 text-white"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                             }`}
                                     >
                                         {hobby.charAt(0).toUpperCase() + hobby.slice(1)}
@@ -189,7 +263,7 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">
-                                General Interests (Select all that apply)
+                                General Interests <span className="text-red-500">*</span> (Select all that apply)
                             </label>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                 {interestsOptions.map((interest) => (
@@ -198,8 +272,8 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                         type="button"
                                         onClick={() => handleArrayToggle("interests", interest)}
                                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${formData.interests.includes(interest)
-                                                ? "bg-blue-500 text-white"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                             }`}
                                     >
                                         {interest.charAt(0).toUpperCase() + interest.slice(1)}
@@ -217,8 +291,8 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                         type="button"
                                         onClick={() => handleInputChange("lifestyle", lifestyle)}
                                         className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${formData.lifestyle === lifestyle
-                                                ? "bg-blue-500 text-white"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                             }`}
                                     >
                                         {lifestyle.charAt(0).toUpperCase() + lifestyle.slice(1)}
@@ -237,7 +311,9 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                         </h2>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Annual Income Range</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Annual Income Range <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 value={formData.incomeRange}
                                 onChange={(e) => handleInputChange("incomeRange", e.target.value)}
@@ -255,7 +331,7 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Risk Tolerance</label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                                 {[
                                     { value: "conservative", label: "Conservative", desc: "Prefer safety over growth" },
                                     { value: "moderate", label: "Moderate", desc: "Balanced risk and reward" },
@@ -266,8 +342,8 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                         type="button"
                                         onClick={() => handleInputChange("riskTolerance", option.value)}
                                         className={`p-4 rounded-lg text-sm transition-colors text-left ${formData.riskTolerance === option.value
-                                                ? "bg-blue-500 text-white"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                             }`}
                                     >
                                         <div className="font-medium">{option.label}</div>
@@ -287,7 +363,9 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                         </h2>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Primary Financial Goal</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Primary Financial Goal <span className="text-red-500">*</span>
+                            </label>
                             <select
                                 value={formData.primaryGoal}
                                 onChange={(e) => handleInputChange("primaryGoal", e.target.value)}
@@ -315,6 +393,7 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                                     onChange={(e) => handleInputChange("goalTargetAmount", e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="25000"
+                                    min="0"
                                 />
                             </div>
                         )}
@@ -354,6 +433,13 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                 </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-600 text-sm">{error}</p>
+                </div>
+            )}
+
             {/* Step Content */}
             {renderStep()}
 
@@ -370,9 +456,17 @@ export default function OnboardingFlow({ user }: OnboardingFlowProps) {
                 {currentStep === totalSteps ? (
                     <button
                         onClick={handleComplete}
-                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        disabled={isLoading}
+                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                     >
-                        Complete Profile
+                        {isLoading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span>Saving...</span>
+                            </>
+                        ) : (
+                            <span>Complete Profile</span>
+                        )}
                     </button>
                 ) : (
                     <button
