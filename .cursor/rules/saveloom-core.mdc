@@ -1,0 +1,18 @@
+---
+description: SaveLoom core project context — stack, dev setup, critical conventions
+alwaysApply: true
+---
+
+# SaveLoom core
+
+Personal finance app: Next.js 15, Prisma/Postgres, NextAuth (Google), Plaid, Claude.
+
+**Local dev:** `docker start SaveLoom-postgres` then `npm run dev` (port 3000). DB required for auth.
+
+**Branch:** `feature/unified-theme`. Read `AGENTS.md` and `.cursor/skills/saveloom/SKILL.md` in new chats.
+
+**Money:** Use `~/lib/money` (`parseMoney`, `formatCurrency`). Dashboard stats from `GET /api/dashboard/stats` only.
+
+**UI:** Tokens from `~/lib/design`. Lucide icons. Modals via `useAppModal()`. No emojis.
+
+**Never commit:** `.env`, `.env.local`. Only commit when user asks.

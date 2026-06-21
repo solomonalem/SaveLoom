@@ -226,7 +226,22 @@ const RecommendationFilters = ({ selectedPriority, onPriorityChange, selectedSta
     );
 };
 
-export default function RecommendationsDashboard() {
+export default function RecommendationsDashboard({
+    status,
+    onRefresh,
+    refreshKey = 0,
+}: {
+    status?: {
+        accountsConnected: number;
+        transactionCount: number;
+        canGenerate: boolean;
+        needsSync: boolean;
+        blockReason: string | null;
+        hasInsights: boolean;
+    } | null;
+    onRefresh?: () => void | Promise<void>;
+    refreshKey?: number;
+}) {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPriority, setSelectedPriority] = useState('all');
@@ -235,7 +250,7 @@ export default function RecommendationsDashboard() {
 
     useEffect(() => {
         fetchRecommendations();
-    }, []);
+    }, [refreshKey]);
 
     const fetchRecommendations = async () => {
         try {
@@ -397,9 +412,22 @@ export default function RecommendationsDashboard() {
                         <Target className="h-5 w-5" />
                     </div>
                     <h3 className="mb-2 text-lg font-semibold text-slate-900">No recommendations yet</h3>
-                    <p className="text-sm text-slate-600">
-                        Connect your accounts and generate AI insights to get personalized recommendations.
+                    <p className="mx-auto mb-4 max-w-md text-sm text-slate-600">
+                        {status?.transactionCount && status.transactionCount > 0
+                            ? `You have ${status.transactionCount} transactions ready. Refresh insights to generate recommendations.`
+                            : status?.needsSync
+                                ? 'Your bank is connected but no transactions are stored yet. On the dashboard, use Import in Transaction History to pull them from Plaid.'
+                                : status?.accountsConnected === 0
+                                    ? 'Connect a bank account from the dashboard to get personalized recommendations.'
+                                    : status?.canGenerate
+                                        ? 'Refresh insights to generate recommendations from your transaction data.'
+                                        : (status?.blockReason ?? 'Add transaction data to unlock recommendations.')}
                     </p>
+                    {status?.canGenerate && onRefresh && (
+                        <button onClick={onRefresh} className={buttons.primary}>
+                            Refresh insights
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">

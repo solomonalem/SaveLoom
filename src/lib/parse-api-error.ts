@@ -8,7 +8,11 @@ export async function parseApiError(
       details?: string;
       message?: string;
     };
-    return data.error ?? data.details ?? data.message ?? fallback;
+    const primary = data.error ?? data.message ?? fallback;
+    if (data.details && data.details !== primary) {
+      return `${primary}: ${data.details}`;
+    }
+    return primary;
   } catch {
     return fallback;
   }

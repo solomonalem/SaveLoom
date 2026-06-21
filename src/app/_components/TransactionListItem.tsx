@@ -2,6 +2,7 @@
 
 import MerchantIcon from "~/app/_components/MerchantIcon";
 import { listRow, typography } from "~/lib/design";
+import { formatCurrency, parseMoney } from "~/lib/money";
 import { getMerchantDisplayName } from "~/lib/merchant-icons";
 import type { Transaction } from "~/types";
 
@@ -14,13 +15,7 @@ export function TransactionListItem({
   transaction,
   showAccount = true,
 }: TransactionListItemProps) {
-  const isExpense = transaction.amount < 0;
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(Math.abs(amount));
+  const isExpense = parseMoney(transaction.amount) < 0;
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -51,8 +46,8 @@ export function TransactionListItem({
           isExpense ? "text-red-600" : "text-emerald-600"
         }`}
       >
-        {isExpense ? "-" : "+"}
-        {formatCurrency(transaction.amount)}
+                {isExpense ? "-" : "+"}
+                {formatCurrency(Math.abs(parseMoney(transaction.amount)))}
       </span>
     </div>
   );

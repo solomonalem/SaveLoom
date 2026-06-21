@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Brain, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar, Target, Coffee, CreditCard, Lightbulb, RefreshCw, Trash, Heart, Sparkles } from 'lucide-react';
 import RecommendationsDashboard from './RecommendationsDashboard';
 import FinancialHealthDashboard from './FinancialHealthDashboard';
@@ -174,13 +174,31 @@ const InsightTypeFilter = ({ types, selectedType, onTypeChange }: {
     );
 };
 
+interface InsightsStatus {
+    accountsConnected: number;
+    transactionCount: number;
+    hasInsights: boolean;
+    hasRecommendations: boolean;
+    fingerprintMatches: boolean;
+    generatedAt: string | null;
+    source: 'claude' | 'algorithmic' | null;
+    canGenerate: boolean;
+    blockReason: string | null;
+    needsSync: boolean;
+    aiAvailable: boolean;
+    aiForcedRemainingToday: number;
+}
+
 export default function AIInsightsDashboard() {
     const { showAlert, showConfirm } = useAppModal();
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState('all');
-    const [activeTab, setActiveTab] = useState('insights'); // Can be 'insights', 'recommendations', or 'health'
+    const [activeTab, setActiveTab] = useState('insights');
     const [generating, setGenerating] = useState(false);
+    const [generatingAi, setGeneratingAi] = useState(false);
+    const [status, setStatus] = useState<InsightsStatus | null>(null);
+    const [recRefreshKey, setRecRefreshKey] = useState(0);
 
     // Delete insight handler
     const handleDeleteInsight = async (insightId: string) => {
@@ -222,81 +240,154 @@ export default function AIInsightsDashboard() {
         }
     };
 
-    useEffect(() => {
-        fetchInsights();
+    const fetchStatus = useCallback(async () => {
+        try {
+            const response = await fetch('/api/ai/insights/status');
+            if (response.ok) {
+                const data = await response.json();
+                setStatus(data.status ?? null);
+                return data.status as InsightsStatus | null;
+            }
+        } catch (error) {
+            console.error('Error fetching insights status:', error);
+        }
+        return null;
     }, []);
 
     const fetchInsights = async () => {
         try {
             setLoading(true);
-            console.log('🔍 Starting to fetch insights...');
-
             const response = await fetch('/api/ai/insights');
-            console.log('🔍 Response status:', response.status);
 
             if (response.ok) {
-                const data = await response.json();
-
-                // Check multiple possible response structures
-                let realInsights = [];
-
-                if (data.insights && Array.isArray(data.insights)) {
-                    realInsights = data.insights;
-                } else if (Array.isArray(data)) {
-                    realInsights = data;
-                } else if (data.data && Array.isArray(data.data)) {
-                    realInsights = data.data;
-                }
-
-                if (realInsights.length > 0) {
-                    setInsights(realInsights);
-                }
+                const data = await response.json() as { insights?: AIInsight[] };
+                setInsights(Array.isArray(data.insights) ? data.insights : []);
             } else {
-                console.error('❌ API failed with status:', response.status);
-                const errorText = await response.text();
-                console.error('❌ Error response:', errorText);
-
+                console.error('Failed to fetch insights:', response.status);
             }
         } catch (error) {
-            console.error('❌ Error fetching insights:', error);
-
+            console.error('Error fetching insights:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const generateInsights = async () => {
-        setGenerating(true);
+    const generateInsights = async (
+        options: { useAi?: boolean; force?: boolean; silent?: boolean } = {},
+    ) => {
+        const { useAi = false, force = false, silent = false } = options;
+        if (useAi) {
+            setGeneratingAi(true);
+        } else {
+            setGenerating(true);
+        }
+
         try {
             const response = await fetch('/api/ai/generate-insights', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ useAi, force }),
             });
+
+            const data = (await response.json().catch(() => ({}))) as {
+                cached?: boolean;
+                message?: string;
+                error?: string;
+                details?: string;
+            };
 
             if (response.ok) {
                 await fetchInsights();
-                await showAlert({
-                    title: 'Insights generated',
-                    message: 'New AI insights and recommendations are ready to review.',
-                    variant: 'success',
-                });
-            } else {
+                await fetchStatus();
+
+                if (!silent) {
+                    if (data.cached) {
+                        await showAlert({
+                            title: 'Already up to date',
+                            message: data.message ?? 'Your insights are current. They will refresh when your accounts or transactions change.',
+                            variant: 'info',
+                        });
+                    } else {
+                        setRecRefreshKey((key) => key + 1);
+                        await showAlert({
+                            title: useAi ? 'AI insights generated' : 'Insights updated',
+                            message: data.message ?? 'Your insights and recommendations are ready to review.',
+                            variant: 'success',
+                        });
+                    }
+                } else if (!data.cached) {
+                    setRecRefreshKey((key) => key + 1);
+                }
+            } else if (!silent) {
                 await showAlert({
                     title: 'Generation failed',
-                    message: await parseApiError(response, 'Failed to generate insights. Please try again.'),
+                    message: data.error ?? data.details ?? await parseApiError(response, 'Failed to generate insights. Please try again.'),
                     variant: 'error',
                 });
             }
         } catch (error) {
             console.error('Error generating insights:', error);
-            await showAlert({
-                title: 'Generation failed',
-                message: 'An unexpected error occurred while generating insights.',
-                variant: 'error',
-            });
+            if (!silent) {
+                await showAlert({
+                    title: 'Generation failed',
+                    message: 'An unexpected error occurred while generating insights.',
+                    variant: 'error',
+                });
+            }
         } finally {
             setGenerating(false);
+            setGeneratingAi(false);
         }
     };
+
+    useEffect(() => {
+        void (async () => {
+            const [, currentStatus] = await Promise.all([fetchInsights(), fetchStatus()]);
+
+            if (currentStatus?.canGenerate && !currentStatus.hasInsights) {
+                await generateInsights({ useAi: false, silent: true });
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+    }, []);
+
+    const getEmptyMessage = () => {
+        if (!status) {
+            return 'Loading your account status…';
+        }
+        if (status.transactionCount > 0) {
+            return `You have ${status.transactionCount} transactions and ${status.accountsConnected} linked account${status.accountsConnected === 1 ? '' : 's'}. Click Refresh insights to analyze them.`;
+        }
+        if (status.needsSync) {
+            return 'Your bank is connected but no transactions are stored yet. On the dashboard, open Transaction History and click Import to pull them from Plaid.';
+        }
+        if (status.accountsConnected === 0) {
+            return 'Connect a bank account from the dashboard to start analyzing your spending.';
+        }
+        return status.blockReason ?? 'Add transaction data to get personalized insights.';
+    };
+
+    const insightActions = (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+                onClick={() => void generateInsights({ useAi: false })}
+                disabled={generating || generatingAi || status?.canGenerate === false}
+                className={buttons.secondary}
+            >
+                <RefreshCw className="h-4 w-4" />
+                <span>{generating ? 'Refreshing...' : 'Refresh insights'}</span>
+            </button>
+            <button
+                onClick={() => void generateInsights({ useAi: true, force: true })}
+                disabled={generating || generatingAi || !status?.aiAvailable || status?.canGenerate === false}
+                title={status?.aiAvailable ? 'Uses Claude API (limited refreshes per day)' : 'Add ANTHROPIC_API_KEY to .env.local to enable Claude'}
+                className={buttons.primary}
+            >
+                <Sparkles className="h-4 w-4" />
+                <span>{generatingAi ? 'Generating...' : 'Generate with AI'}</span>
+            </button>
+        </div>
+    );
 
     const filteredInsights = selectedType === 'all'
         ? insights
@@ -324,16 +415,7 @@ export default function AIInsightsDashboard() {
         );
     }
 
-    const navActions = (
-        <button
-            onClick={generateInsights}
-            disabled={generating}
-            className={buttons.primary}
-        >
-            <Brain className="h-4 w-4" />
-            <span>{generating ? 'Generating...' : 'Generate new'}</span>
-        </button>
-    );
+    const navActions = insightActions;
 
     const tabClass = (active: boolean) =>
         `${buttons.ghost} ${active ? 'bg-indigo-500/[0.08] text-indigo-700 hover:bg-indigo-500/[0.08] hover:text-indigo-700' : ''}`;
@@ -350,13 +432,25 @@ export default function AIInsightsDashboard() {
                         </div>
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-2.5 py-1 text-xs font-medium text-slate-600 backdrop-blur-sm">
                             <Sparkles className="h-3 w-3 text-indigo-600" />
-                            Powered by Claude
+                            {status?.source === 'claude' ? 'Powered by Claude' : 'Rule-based insights'}
                         </span>
                     </div>
                     <h1 className={`${typography.pageTitle} mb-2`}>AI financial insights</h1>
                     <p className={`${typography.pageSubtitle} mx-auto max-w-2xl`}>
                         Personalized analysis of your spending patterns and actionable recommendations.
                     </p>
+                    <div className="mt-4">{insightActions}</div>
+                    {!status?.aiAvailable && (
+                        <p className="mx-auto mt-2 max-w-lg text-xs text-slate-500">
+                            Generate with AI needs a valid <code className="rounded bg-slate-100 px-1">ANTHROPIC_API_KEY</code> in <code className="rounded bg-slate-100 px-1">.env.local</code> (from console.anthropic.com, starts with <code className="rounded bg-slate-100 px-1">sk-ant-</code>).
+                        </p>
+                    )}
+                    {status && status.transactionCount > 0 && (
+                        <p className="mx-auto mt-2 text-xs text-slate-500">
+                            {status.transactionCount} transactions · {status.accountsConnected} account{status.accountsConnected === 1 ? '' : 's'}
+                            {status.generatedAt ? ` · last updated ${new Date(status.generatedAt).toLocaleDateString()}` : ''}
+                        </p>
+                    )}
                 </div>
 
                 <div className="mb-6 flex justify-center">
@@ -433,11 +527,17 @@ export default function AIInsightsDashboard() {
                                 </div>
                                 <h3 className="mb-2 text-lg font-semibold text-slate-900">No insights yet</h3>
                                 <p className="mx-auto mb-4 max-w-md text-sm text-slate-600">
-                                    Connect bank accounts and track transactions to get personalized AI insights.
+                                    {getEmptyMessage()}
                                 </p>
-                                <button onClick={generateInsights} className={buttons.primary}>
-                                    Generate your first insights
-                                </button>
+                                {status?.canGenerate !== false && (
+                                    <button
+                                        onClick={() => void generateInsights({ useAi: false })}
+                                        className={buttons.primary}
+                                        disabled={generating}
+                                    >
+                                        {generating ? 'Generating...' : 'Refresh insights'}
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -450,7 +550,11 @@ export default function AIInsightsDashboard() {
                         )}
                     </>
                 ) : activeTab === 'recommendations' ? (
-                    <RecommendationsDashboard />
+                    <RecommendationsDashboard
+                        status={status}
+                        refreshKey={recRefreshKey}
+                        onRefresh={() => void generateInsights({ useAi: false })}
+                    />
                 ) : (
                     <FinancialHealthDashboard />
                 )}

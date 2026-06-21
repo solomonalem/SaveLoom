@@ -1,0 +1,14 @@
+---
+description: SaveLoom API routes and data handling
+globs: src/app/api/**/*.ts,src/lib/money.ts,src/server/**/*.ts
+alwaysApply: false
+---
+
+# SaveLoom API
+
+- Auth check: `const session = await auth()` — return 401 if no `session?.user?.id`
+- Serialize Prisma Decimals: `parseMoney(field)` before JSON (see `bank-accounts/route.ts`)
+- Transaction sign: negative = expense, positive = income
+- Dashboard aggregates: implement in `src/app/api/dashboard/stats/route.ts`, not client-side
+- AI routes: use `AIInsightsEngine`, handle Anthropic errors with clear messages
+- Env: add new vars to `src/env.js` schema and `.env.example`

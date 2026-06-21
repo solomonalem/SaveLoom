@@ -22,8 +22,14 @@ export const env = createEnv({
     PLAID_SECRET: z.string(),
     PLAID_ENV: z.enum(["sandbox", "development", "production"]),
     // Anthropic Claude — optional; required only for /api/ai/* routes
-    ANTHROPIC_API_KEY: z.string().optional(),
-    ANTHROPIC_MODEL: z.string().optional(),
+    ANTHROPIC_API_KEY: z
+      .string()
+      .transform((value) => value.trim())
+      .optional(),
+    ANTHROPIC_MODEL: z
+      .string()
+      .transform((value) => value.trim())
+      .optional(),
   },
 
   /**

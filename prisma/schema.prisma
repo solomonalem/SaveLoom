@@ -120,6 +120,12 @@ model User {
     insights        AIInsight[]
     notifications   Notification[]
 
+    // Cached AI insights — regenerate only when financial data fingerprint changes
+    aiInsightsFingerprint  String?
+    aiInsightsGeneratedAt  DateTime?
+    aiInsightsSource       String? // "claude" | "algorithmic"
+    aiInsightsLastForcedAt DateTime?
+
     createdAt         DateTime           @default(now())
     updatedAt         DateTime           @updatedAt
     Post              Post[]

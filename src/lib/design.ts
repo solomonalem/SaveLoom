@@ -7,7 +7,7 @@ export const brand = {
 } as const;
 
 export const surfaces = {
-  page: "min-h-screen app-gradient-bg",
+  page: "min-h-screen min-w-0 overflow-x-clip app-gradient-bg",
   card: "glass-card rounded-xl",
   cardHover:
     "glass-card rounded-xl transition-all hover:shadow-md hover:border-white/80",
@@ -50,7 +50,7 @@ export const listRow = {
 } as const;
 
 export const layout = {
-  page: "sidebar-content page-container space-y-6 p-4 sm:p-6 lg:p-8",
+  page: "sidebar-content page-container min-w-0 space-y-6 p-4 sm:p-6 lg:p-8",
   section: "space-y-3",
   gridStats: "grid grid-cols-2 gap-3 lg:grid-cols-4",
   gridCards: "grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3",

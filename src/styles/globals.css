@@ -4,14 +4,35 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --max-width-page: 2000px;
+  --sidebar-width: 72px;
   --color-brand: #4f46e5;
   --color-brand-muted: #eef2ff;
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 .page-container {
   width: 100%;
   max-width: var(--max-width-page);
   margin-inline: auto;
+}
+
+/* Offset main content beside fixed sidebar — prevents horizontal scroll */
+.app-main-offset {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .app-main-offset {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
+  }
 }
 
 .app-gradient-bg {
@@ -92,7 +113,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 72px;
+  width: var(--sidebar-width);
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
@@ -119,6 +140,36 @@
 }
 
 .sidebar-nav-active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
+/* Horizontal top nav — icon + label beside sidebar */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.top-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-nav-link:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+}
+
+.top-nav-link-active {
   background: rgba(99, 102, 241, 0.12);
   color: #4f46e5;
 }
@@ -155,14 +206,17 @@
   color: #dc2626;
 }
 
-/* Sidebar content offset */
+/* Main content area beside sidebar */
 .sidebar-content {
   padding-bottom: 5rem;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
   .sidebar-content {
-    margin-left: 72px;
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
     padding-bottom: 0;
   }
 }

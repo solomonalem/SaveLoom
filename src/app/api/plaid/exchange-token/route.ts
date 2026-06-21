@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { plaidClient } from '~/lib/plaid';
 import { db } from '~/server/db';
-import AIInsightsEngine from '~/lib/ai-insights-engine'; // Add this import
+import { env } from '~/env';
+import { generateUserInsights } from '~/lib/insights-generation';
 
 export async function POST(req: NextRequest) {
     try {
@@ -149,14 +150,12 @@ export async function POST(req: NextRequest) {
 
             // Step 6: 🧠 Generate AI insights after initial data load
             if (savedTransactionsCount > 0) {
-                console.log('🧠 Generating initial AI insights...');
+                console.log('🧠 Generating initial insights...');
                 try {
-                    const insightsEngine = new AIInsightsEngine(db);
-                    await insightsEngine.generateInsights(session.user.id);
-                    console.log('✅ Generated initial AI insights after bank connection');
+                    await generateUserInsights(db, session.user.id, { useAi: Boolean(env.ANTHROPIC_API_KEY) });
+                    console.log('✅ Generated initial insights after bank connection');
                 } catch (insightError) {
                     console.error('❌ Failed to generate insights:', insightError);
-                    // Don't fail the whole request if insights fail
                 }
             }
 

@@ -2,8 +2,11 @@
 // Real Claude AI-Powered Financial Insights Engine for SaveLoom
 
 import Anthropic from '@anthropic-ai/sdk';
-import { PrismaClient, Transaction, User, BankAccount } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import type { Transaction, User, BankAccount } from '@prisma/client';
 import { env } from '~/env';
+import { parseMoney } from '~/lib/money';
+import { isAnthropicKeyConfigured, normalizeAnthropicError } from '~/lib/anthropic-errors';
 
 type TransactionWithAccount = Transaction & {
     bankAccount: BankAccount;
@@ -47,26 +50,19 @@ interface ClaudeRecommendation {
 
 export default class AIInsightsEngine {
     private prisma: PrismaClient;
-    private anthropic: Anthropic;
+    private anthropic: Anthropic | null;
 
     constructor(prisma: PrismaClient) {
         this.prisma = prisma;
-
-        // Initialize Claude AI
-        if (!env.ANTHROPIC_API_KEY) {
-            console.warn('⚠️ ANTHROPIC_API_KEY not found. AI insights will not work.');
-            throw new Error('ANTHROPIC_API_KEY is required for AI insights');
-        }
-
-        this.anthropic = new Anthropic({
-            apiKey: env.ANTHROPIC_API_KEY
-        });
+        this.anthropic = isAnthropicKeyConfigured(env.ANTHROPIC_API_KEY)
+            ? new Anthropic({ apiKey: env.ANTHROPIC_API_KEY!.trim() })
+            : null;
     }
 
     /**
      * Generate AI-powered insights using Claude
      */
-    async generateInsights(userId: string): Promise<void> {
+    async generateInsights(userId: string): Promise<{ insightsCount: number; recommendationsCount: number }> {
         console.log(`🤖 Generating Claude AI insights for user: ${userId}`);
 
         try {
@@ -104,9 +100,10 @@ export default class AIInsightsEngine {
             }
 
             // Save insights to database
-            await this.saveClaudeInsights(userId, claudeAnalysis);
+            const saved = await this.saveClaudeInsights(userId, claudeAnalysis);
 
             console.log(`✅ Generated ${claudeAnalysis.insights.length} Claude AI insights successfully`);
+            return saved;
         } catch (error) {
             console.error('❌ Error generating Claude insights:', error);
 
@@ -138,19 +135,11 @@ export default class AIInsightsEngine {
         last30Days.setDate(last30Days.getDate() - 30);
 
         const recentTransactions = transactions.filter(t => new Date(t.date) >= last30Days);
-        const expenses = recentTransactions.filter(t => Number(t.amount) < 0);
-        const income = recentTransactions.filter(t => Number(t.amount) > 0);
+        const expenses = recentTransactions.filter(t => parseMoney(t.amount) < 0);
+        const income = recentTransactions.filter(t => parseMoney(t.amount) > 0);
 
-        // Fixed: Ensure these values are always numbers and handle null/undefined
-        const totalExpenses = expenses.reduce((sum, t) => {
-            const amount = parseFloat(t.amount?.toString() || '0') || 0;
-            return sum + Math.abs(amount);
-        }, 0);
-
-        const totalIncome = income.reduce((sum, t) => {
-            const amount = parseFloat(t.amount?.toString() || '0') || 0;
-            return sum + amount;
-        }, 0);
+        const totalExpenses = expenses.reduce((sum, t) => sum + Math.abs(parseMoney(t.amount)), 0);
+        const totalIncome = income.reduce((sum, t) => sum + parseMoney(t.amount), 0);
 
         const netCashFlow = totalIncome - totalExpenses;
 
@@ -177,9 +166,9 @@ export default class AIInsightsEngine {
             const transactionDate = new Date(t.date);
             return transactionDate >= previous30Days && transactionDate < previousPeriodEnd;
         });
-        const previousExpenses = previousTransactions.filter(t => Number(t.amount) < 0);
+        const previousExpenses = previousTransactions.filter(t => parseMoney(t.amount) < 0);
         const previousTotalExpenses = previousExpenses.reduce(
-            (sum, t) => sum + Math.abs(Number(t.amount)),
+            (sum, t) => sum + Math.abs(parseMoney(t.amount)),
             0
         );
 
@@ -245,7 +234,7 @@ ${budgetAnalysis.length > 0
 RECENT TRANSACTION SAMPLE (Last 15):
 ${expenses.length > 0
                 ? expenses.slice(0, 15).map(t =>
-                    `- ${new Date(t.date || new Date()).toISOString().split('T')[0]}: ${Math.abs(t.amount || 0).toFixed(2)} at ${t.merchantName || t.description || 'Unknown'} (${t.category || 'Other'})`
+                    `- ${new Date(t.date || new Date()).toISOString().split('T')[0]}: ${Math.abs(parseMoney(t.amount)).toFixed(2)} at ${t.merchantName || t.description || 'Unknown'} (${t.category || 'Other'})`
                 ).join('\n')
                 : '- No recent expense transactions found'
             }
@@ -266,6 +255,10 @@ Focus on practical, actionable advice that can immediately improve their financi
      * Get analysis from Claude AI
      */
     private async getClaudeAnalysis(context: string): Promise<ClaudeInsightResponse> {
+        if (!this.anthropic) {
+            throw new Error('ANTHROPIC_API_KEY is required for Claude AI insights');
+        }
+
         const prompt = `
 You are an expert financial advisor analyzing a user's personal finance data. Based on the detailed financial information provided, generate comprehensive insights and recommendations.
 
@@ -367,29 +360,14 @@ Respond ONLY with valid JSON. No additional text.
                 }
         } catch (error: unknown) {
             console.error('❌ Error calling Claude API:', error);
-
-            const message = error instanceof Error ? error.message : String(error);
-
-            if (message.includes('Invalid API key')) {
-                throw new Error('Invalid Anthropic API key. Please check your ANTHROPIC_API_KEY.');
-            }
-            if (message.includes('rate limit')) {
-                throw new Error('Claude API rate limit reached. Please try again later.');
-            }
-            if (message.includes('not_found_error') || message.includes('model:')) {
-                throw new Error(
-                    `Claude model not available. Set ANTHROPIC_MODEL in .env (recommended: claude-sonnet-4-6).`
-                );
-            }
-
-            throw error instanceof Error ? error : new Error(message);
+            throw normalizeAnthropicError(error);
         }
     }
 
     /**
      * Save Claude insights to database
      */
-    private async saveClaudeInsights(userId: string, analysis: ClaudeInsightResponse): Promise<void> {
+    private async saveClaudeInsights(userId: string, analysis: ClaudeInsightResponse): Promise<{ insightsCount: number; recommendationsCount: number }> {
         try {
             console.log('🧹 Starting complete refresh - deleting all existing insights...');
 
@@ -480,6 +458,10 @@ Respond ONLY with valid JSON. No additional text.
                 }
             }
 
+            return {
+                insightsCount: savedInsights.length,
+                recommendationsCount: savedRecommendations.length,
+            };
         } catch (error) {
             console.error('❌ Error in complete refresh save:', error);
             throw error;
@@ -513,7 +495,7 @@ Respond ONLY with valid JSON. No additional text.
             if (!transaction) return acc; // Skip null transactions
 
             const category = transaction.category || 'Other';
-            const amount = transaction.amount || 0;
+            const amount = parseMoney(transaction.amount);
             acc[category] = (acc[category] || 0) + Math.abs(amount);
             return acc;
         }, {} as { [category: string]: number });
@@ -540,9 +522,7 @@ Respond ONLY with valid JSON. No additional text.
         return Object.entries(merchantGroups)
             .filter(([, txns]) => txns && txns.length >= 2)
             .map(([merchant, txns]) => {
-                const amounts = txns
-                    .filter(t => t && typeof t.amount === 'number')
-                    .map(t => Math.abs(t.amount));
+                const amounts = txns.map(t => Math.abs(parseMoney(t.amount)));
 
                 if (amounts.length === 0) return null;
 

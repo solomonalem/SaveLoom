@@ -30,6 +30,11 @@ import {
     Activity,
 } from 'lucide-react';
 import { buttons, iconBadge, surfaces, typography } from "~/lib/design";
+import {
+  formatCurrency,
+  formatSignedCurrency,
+  formatSavingsRate,
+} from "~/lib/money";
 
 interface DashboardClientProps {
     user: {
@@ -43,6 +48,13 @@ interface Stats {
     transactionsTracked: number;
     totalBalance: number;
     monthlyExpenses: number;
+    monthlyIncome: number;
+    netCashFlow: number;
+    savingsRate: number | null;
+    avgDailySpend: number;
+    topCategory: string | null;
+    topCategoryAmount: number;
+    hasRecentActivity: boolean;
 }
 
 const SectionHeader = ({ title, defaultOpen = true }: { title: string; defaultOpen?: boolean }) => {
@@ -126,7 +138,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         accountsConnected: 0,
         transactionsTracked: 0,
         totalBalance: 0,
-        monthlyExpenses: 0
+        monthlyExpenses: 0,
+        monthlyIncome: 0,
+        netCashFlow: 0,
+        savingsRate: null,
+        avgDailySpend: 0,
+        topCategory: null,
+        topCategoryAmount: 0,
+        hasRecentActivity: false,
     });
 
     const [onboardingStatus, setOnboardingStatus] = useState({
@@ -167,33 +186,26 @@ export default function DashboardClient({ user }: DashboardClientProps) {
 
     const fetchStats = async () => {
         try {
-            const [accountsRes, transactionsRes] = await Promise.all([
-                fetch('/api/bank-accounts'),
-                fetch('/api/transactions')
-            ]);
+            const response = await fetch("/api/dashboard/stats");
+            if (!response.ok) return;
 
-            const accountsData = await accountsRes.json();
-            const transactionsData = await transactionsRes.json();
-
-            const accounts = accountsData.accounts || [];
-            const transactions = transactionsData.transactions || [];
-
-            const totalBalance = accounts.reduce((sum: number, acc: any) => sum + acc.currentBalance, 0);
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const monthlyExpenses = transactions
-                .filter((t: any) => new Date(t.date) >= thirtyDaysAgo && t.amount < 0)
-                .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
+            const data = await response.json();
 
             setStats({
-                accountsConnected: accounts.length,
-                transactionsTracked: transactions.length,
-                totalBalance,
-                monthlyExpenses
+                accountsConnected: data.accountsConnected ?? 0,
+                transactionsTracked: data.transactionsTracked ?? 0,
+                totalBalance: data.totalBalance ?? 0,
+                monthlyExpenses: data.monthlyExpenses ?? 0,
+                monthlyIncome: data.monthlyIncome ?? 0,
+                netCashFlow: data.netCashFlow ?? 0,
+                savingsRate: data.savingsRate ?? null,
+                avgDailySpend: data.avgDailySpend ?? 0,
+                topCategory: data.topCategory ?? null,
+                topCategoryAmount: data.topCategoryAmount ?? 0,
+                hasRecentActivity: data.hasRecentActivity ?? false,
             });
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            console.error("Error fetching stats:", error);
         }
     };
 
@@ -261,9 +273,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         window.location.reload();
     };
 
-    const formatCurrency = (amount: number) =>
-        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
-
     const hasAccounts = stats.accountsConnected > 0;
     const hasTransactions = stats.transactionsTracked > 0;
 
@@ -295,8 +304,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
             <OnboardingSuccessMessage />
             <ReturningUserMessage />
 
-            <div className="sidebar-content">
-                <div className="space-y-6 px-4 py-6 sm:px-6 md:px-8">
+            <div className="sidebar-content page-container min-w-0">
+                <div className="space-y-6 p-4 sm:p-6 lg:p-8">
 
                     {/* Stats Cards */}
                     <section>
@@ -310,7 +319,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                     title="Accounts Connected"
                                     value={stats.accountsConnected.toString()}
                                     icon={CreditCard}
-                                    trend={stats.accountsConnected > 0 ? 42 : 0}
                                     iconBg="bg-indigo-50/80"
                                     iconColor="text-indigo-600"
                                     subtitle="Active bank accounts"
@@ -319,16 +327,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                     title="Transactions"
                                     value={stats.transactionsTracked.toString()}
                                     icon={BarChart3}
-                                    trend={stats.transactionsTracked > 0 ? 22 : 0}
                                     iconBg="bg-emerald-50/80"
                                     iconColor="text-emerald-600"
-                                    subtitle="Tracked this month"
+                                    subtitle="Tracked all time"
                                 />
                                 <DashStatCard
                                     title="Total Balance"
                                     value={formatCurrency(stats.totalBalance)}
                                     icon={Wallet}
-                                    trend={5}
                                     iconBg="bg-violet-50/80"
                                     iconColor="text-violet-600"
                                     subtitle="Across all accounts"
@@ -337,7 +343,6 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                     title="Monthly Expenses"
                                     value={formatCurrency(stats.monthlyExpenses)}
                                     icon={PiggyBank}
-                                    trend={-3}
                                     iconBg="bg-amber-50/80"
                                     iconColor="text-amber-600"
                                     subtitle="Last 30 days"
@@ -353,42 +358,140 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${sectionsOpen.accounts ? "" : "-rotate-90"}`} />
                         </button>
                         {sectionsOpen.accounts && (
-                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                                {/* Purple Hero Card */}
-                                <div className="hero-card-purple p-6 lg:row-span-2">
-                                    <div className="relative z-10 flex h-full flex-col justify-between">
-                                        <div>
-                                            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-                                                <DollarSign className="h-6 w-6" />
+                            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-5">
+                                <div className="hero-card-purple p-5 lg:col-span-2">
+                                    <div className="relative z-10">
+                                        <div className="mb-4 flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs font-medium uppercase tracking-wide text-white/60">
+                                                    Total balance
+                                                </p>
+                                                <div className="text-2xl font-bold tracking-tight sm:text-3xl">
+                                                    {formatCurrency(stats.totalBalance)}
+                                                </div>
+                                                <p className="mt-1 text-xs text-white/60">
+                                                    Across {stats.accountsConnected} linked account
+                                                    {stats.accountsConnected === 1 ? "" : "s"}
+                                                    {stats.accountsConnected > 0 && stats.totalBalance === 0
+                                                        ? " · balances may show $0 in sandbox"
+                                                        : ""}
+                                                </p>
                                             </div>
-                                            <p className="mb-1 text-sm font-medium text-white/70">Net Worth</p>
-                                            <div className="text-3xl font-bold tracking-tight">
-                                                {formatCurrency(stats.totalBalance)}
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                                                <DollarSign className="h-5 w-5" />
                                             </div>
-                                            <p className="mt-1 text-sm text-white/60">
-                                                {formatCurrency(stats.totalBalance - stats.monthlyExpenses)} after expenses
-                                            </p>
                                         </div>
 
-                                        <div className="mt-6 space-y-3">
-                                            <div className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
-                                                <span className="text-sm text-white/80">Savings Rate</span>
-                                                <span className="text-sm font-semibold">
-                                                    {stats.totalBalance > 0
-                                                        ? `${Math.round(((stats.totalBalance - stats.monthlyExpenses) / stats.totalBalance) * 100)}%`
-                                                        : "—"}
+                                        <div className="mb-4 rounded-xl bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+                                            <div className="flex items-center justify-between text-xs text-white/70">
+                                                <span>30-day cash flow</span>
+                                                <span
+                                                    className={`font-semibold tabular-nums ${
+                                                        stats.netCashFlow >= 0 ? "text-emerald-200" : "text-red-200"
+                                                    }`}
+                                                >
+                                                    {formatSignedCurrency(stats.netCashFlow)}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-3 backdrop-blur-sm">
-                                                <span className="text-sm text-white/80">Accounts</span>
-                                                <span className="text-sm font-semibold">{stats.accountsConnected}</span>
+                                            <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                {(stats.monthlyIncome > 0 || stats.monthlyExpenses > 0) && (
+                                                    <>
+                                                        <div
+                                                            className="h-full bg-emerald-400/80"
+                                                            style={{
+                                                                width: `${stats.monthlyIncome + stats.monthlyExpenses > 0
+                                                                    ? Math.min(
+                                                                          (stats.monthlyIncome /
+                                                                              (stats.monthlyIncome + stats.monthlyExpenses)) *
+                                                                              100,
+                                                                          100,
+                                                                      )
+                                                                    : 0}%`,
+                                                            }}
+                                                        />
+                                                        <div
+                                                            className="h-full bg-red-400/70"
+                                                            style={{
+                                                                width: `${stats.monthlyIncome + stats.monthlyExpenses > 0
+                                                                    ? Math.min(
+                                                                          (stats.monthlyExpenses /
+                                                                              (stats.monthlyIncome + stats.monthlyExpenses)) *
+                                                                              100,
+                                                                          100,
+                                                                      )
+                                                                    : stats.monthlyExpenses > 0
+                                                                      ? 100
+                                                                      : 0}%`,
+                                                            }}
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 flex justify-between text-[10px] text-white/50">
+                                                <span>Income {formatCurrency(stats.monthlyIncome)}</span>
+                                                <span>Spent {formatCurrency(stats.monthlyExpenses)}</span>
                                             </div>
                                         </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                {
+                                                    label: "Savings rate",
+                                                    value:
+                                                        stats.savingsRate !== null
+                                                            ? formatSavingsRate(stats.savingsRate)
+                                                            : stats.monthlyExpenses > 0
+                                                              ? "N/A"
+                                                              : "—",
+                                                    hint:
+                                                        stats.savingsRate !== null
+                                                            ? "Last 30 days"
+                                                            : stats.monthlyExpenses > 0
+                                                              ? "No income recorded"
+                                                              : "Last 30 days",
+                                                },
+                                                {
+                                                    label: "Avg daily spend",
+                                                    value: formatCurrency(stats.avgDailySpend),
+                                                    hint: "Per day",
+                                                },
+                                                {
+                                                    label: "Transactions",
+                                                    value: stats.transactionsTracked.toString(),
+                                                    hint: "All time",
+                                                },
+                                                {
+                                                    label: "Top category",
+                                                    value: stats.topCategory
+                                                        ? formatCurrency(stats.topCategoryAmount)
+                                                        : "—",
+                                                    hint: stats.topCategory ?? "No spending yet",
+                                                },
+                                            ].map(({ label, value, hint }) => (
+                                                <div
+                                                    key={label}
+                                                    className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm"
+                                                >
+                                                    <p className="text-[10px] font-medium uppercase tracking-wide text-white/50">
+                                                        {label}
+                                                    </p>
+                                                    <p className="text-sm font-semibold tabular-nums text-white">
+                                                        {value}
+                                                    </p>
+                                                    <p className="truncate text-[10px] text-white/45">{hint}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {!hasAccounts && (
+                                            <p className="mt-3 text-xs text-white/50">
+                                                Connect a bank to populate live balances and spending insights.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* Connected Accounts Card */}
-                                <div className="glass-card rounded-2xl p-5 lg:col-span-2">
+                                <div className="glass-card rounded-2xl p-5 lg:col-span-3">
                                     <div className="mb-3 flex items-center justify-between">
                                         <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                                             <CreditCard className="h-4 w-4 text-indigo-600" />
@@ -400,7 +503,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                                 </div>
 
                                 {/* Quick Actions */}
-                                <div className="glass-card rounded-2xl p-5 lg:col-span-2">
+                                <div className="glass-card rounded-2xl p-5 lg:col-span-5">
                                     <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
                                         <Zap className="h-4 w-4 text-indigo-600" />
                                         Quick Actions

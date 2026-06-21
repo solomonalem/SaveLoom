@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import MerchantIcon from '~/app/_components/MerchantIcon';
 import { buttons, listRow, surfaces, typography } from '~/lib/design';
+import { formatCurrency } from "~/lib/money";
 import { useAppModal } from '~/app/_components/modal/ModalProvider';
 
 interface BankAccount {
@@ -53,7 +54,7 @@ const RemovalConfirmationModal = ({ account, onConfirm, onCancel, isRemoving }: 
                 <div className="text-sm font-medium text-slate-900">{account.accountName}</div>
                 <div className={typography.listMeta}>{account.bankName} •••• {account.mask}</div>
                 <div className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
-                    ${account.currentBalance.toLocaleString()}
+                    {formatCurrency(account.currentBalance)}
                 </div>
             </div>
             <p className="mb-4 text-sm text-slate-600">
@@ -109,7 +110,7 @@ function AccountRow({
             <div className="flex shrink-0 items-center gap-2">
                 {!muted && (
                     <span className="text-sm font-semibold tabular-nums text-slate-900">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(account.currentBalance)}
+                        {formatCurrency(account.currentBalance)}
                     </span>
                 )}
                 {onRemove && (

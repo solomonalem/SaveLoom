@@ -10,6 +10,7 @@ import { chartHeaderIcons } from '~/lib/category-icons';
 import { TransactionListItem } from '~/app/_components/TransactionListItem';
 import MerchantIcon from '~/app/_components/MerchantIcon';
 import { buttons, chartColors, iconBadge, iconBadgeTint, layout, listRow, summaryStat, surfaces, typography } from '~/lib/design';
+import { formatCurrency } from "~/lib/money";
 
 interface Transaction {
     id: string;
@@ -165,15 +166,6 @@ export default function RefinedAnalyticsDashboard() {
     // Handle timeframe change
     const handleTimeframeChange = (newTimeframe: string) => {
         setTimeframe(newTimeframe);
-    };
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        }).format(amount);
     };
 
     if (loading) {
@@ -435,7 +427,7 @@ export default function RefinedAnalyticsDashboard() {
                         </div>
                         <div>
                             <span className="text-slate-400">Avg. daily spending</span>
-                            <div className="text-lg font-semibold">{formatCurrency(metrics.totalExpenses / parseInt(timeframe))}</div>
+                            <div className="text-lg font-semibold">{formatCurrency(metrics.totalExpenses / Math.max(parseInt(timeframe, 10), 1))}</div>
                         </div>
                         <div>
                             <span className="text-slate-400">Account balance</span>
