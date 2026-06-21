@@ -447,4 +447,3 @@ export default function RefinedAnalyticsDashboard() {
         </PageShell>
     );
 }
-}
