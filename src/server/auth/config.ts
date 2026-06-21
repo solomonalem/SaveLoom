@@ -68,7 +68,6 @@ export const authConfig = {
           onboardingCompleted: false,
           hasConnectedBank: false,
           riskTolerance: "moderate",
-          financialGoals: [],
         },
       });
     },

@@ -303,7 +303,7 @@ model GoalContribution {
     // Source tracking
     sourceType      String // "manual", "transaction", "automatic", "transfer"
     sourceAccountId String? // Which bank account it came from
-    transactionId   String? // Link to transaction if applicable
+    transactionId   String? @unique // Link to transaction if applicable
 
     // Metadata
     note          String?

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: '🤖 Claude AI insights generated successfully!',
+            message: 'Claude AI insights generated successfully',
             provider: 'Claude AI (Anthropic)'
         });
     } catch (error: any) {

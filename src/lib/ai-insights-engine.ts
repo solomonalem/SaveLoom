@@ -78,13 +78,13 @@ export default class AIInsightsEngine {
             // Get user financial data
             const userData = await this.getUserData(userId);
             if (!userData) {
-                console.log('❌ User not found');
-                return;
+                throw new Error('User not found');
             }
 
             if (!userData.transactions || userData.transactions.length === 0) {
-                console.log('❌ No transaction data available for Claude analysis');
-                return;
+                throw new Error(
+                    'No transaction data available. Connect a bank account and sync transactions before generating insights.'
+                );
             }
 
             // Prepare data for Claude analysis
@@ -92,8 +92,7 @@ export default class AIInsightsEngine {
 
             // Validate that we have meaningful data
             if (!financialContext || financialContext.trim().length === 0) {
-                console.log('❌ Unable to prepare financial context');
-                return;
+                throw new Error('Unable to prepare financial data for analysis');
             }
 
             // Get Claude analysis
@@ -101,8 +100,7 @@ export default class AIInsightsEngine {
 
             // Validate Claude response
             if (!claudeAnalysis || !claudeAnalysis.insights) {
-                console.log('❌ Invalid response from Claude AI');
-                return;
+                throw new Error('Received an invalid response from Claude AI');
             }
 
             // Save insights to database
@@ -140,8 +138,8 @@ export default class AIInsightsEngine {
         last30Days.setDate(last30Days.getDate() - 30);
 
         const recentTransactions = transactions.filter(t => new Date(t.date) >= last30Days);
-        const expenses = recentTransactions.filter(t => t.amount < 0);
-        const income = recentTransactions.filter(t => t.amount > 0);
+        const expenses = recentTransactions.filter(t => Number(t.amount) < 0);
+        const income = recentTransactions.filter(t => Number(t.amount) > 0);
 
         // Fixed: Ensure these values are always numbers and handle null/undefined
         const totalExpenses = expenses.reduce((sum, t) => {
@@ -179,8 +177,11 @@ export default class AIInsightsEngine {
             const transactionDate = new Date(t.date);
             return transactionDate >= previous30Days && transactionDate < previousPeriodEnd;
         });
-        const previousExpenses = previousTransactions.filter(t => t.amount < 0);
-        const previousTotalExpenses = previousExpenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const previousExpenses = previousTransactions.filter(t => Number(t.amount) < 0);
+        const previousTotalExpenses = previousExpenses.reduce(
+            (sum, t) => sum + Math.abs(Number(t.amount)),
+            0
+        );
 
         // Budget analysis
         const budgetAnalysis = budgets.map(budget => ({
@@ -319,7 +320,7 @@ Respond ONLY with valid JSON. No additional text.
             console.log('🤖 Calling Claude AI for financial analysis...');
 
             const response = await this.anthropic.messages.create({
-                model: 'claude-sonnet-4-20250514',
+                model: env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-6',
                 max_tokens: 4000,
                 temperature: 0.3,
                 messages: [
@@ -331,10 +332,12 @@ Respond ONLY with valid JSON. No additional text.
             });
 
             const content = response.content[0];
-            if (content.type === 'text') {
-                try {
-                    // Clean the response to ensure it's valid JSON
-                    let jsonText = content.text.trim();
+            if (!content || content.type !== 'text') {
+                throw new Error('Unexpected response type from Claude AI');
+            }
+
+            try {
+                let jsonText = content.text.trim();
 
                     // Remove any potential markdown formatting
                     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
@@ -362,21 +365,24 @@ Respond ONLY with valid JSON. No additional text.
                     console.log('Raw Claude response:', content.text);
                     throw new Error('Invalid JSON response from Claude AI');
                 }
-            } else {
-                throw new Error('Unexpected response type from Claude AI');
-            }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Error calling Claude API:', error);
 
-            // Handle specific Anthropic errors
-            if (error.message?.includes('Invalid API key')) {
+            const message = error instanceof Error ? error.message : String(error);
+
+            if (message.includes('Invalid API key')) {
                 throw new Error('Invalid Anthropic API key. Please check your ANTHROPIC_API_KEY.');
             }
-            if (error.message?.includes('rate limit')) {
+            if (message.includes('rate limit')) {
                 throw new Error('Claude API rate limit reached. Please try again later.');
             }
+            if (message.includes('not_found_error') || message.includes('model:')) {
+                throw new Error(
+                    `Claude model not available. Set ANTHROPIC_MODEL in .env (recommended: claude-sonnet-4-6).`
+                );
+            }
 
-            throw error;
+            throw error instanceof Error ? error : new Error(message);
         }
     }
 

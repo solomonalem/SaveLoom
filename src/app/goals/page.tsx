@@ -3,20 +3,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { Target, Plus, TrendingUp, Calendar, DollarSign, CheckCircle, AlertTriangle, Edit2, Trash2, X } from 'lucide-react';
-import Link from 'next/link';
+import AppNav from '~/app/_components/AppNav';
+import PageShell from '~/app/_components/PageShell';
+import { CategoryIcon, getGoalCategoryIcon } from '~/lib/category-icons';
+import { buttons, iconBadge, layout, summaryStat, surfaces, typography } from '~/lib/design';
+import { useAppModal } from '~/app/_components/modal/ModalProvider';
+import { parseApiError } from '~/lib/parse-api-error';
 
 // Import types
 import type { BankAccount, FinancialGoal } from '~/types';
 
 const goalCategories = [
-    { value: 'emergency', label: 'Emergency Fund', emoji: '🛡️' },
-    { value: 'purchase', label: 'Major Purchase', emoji: '🏠' },
-    { value: 'investment', label: 'Investment', emoji: '📈' },
-    { value: 'debt', label: 'Debt Payoff', emoji: '💳' },
-    { value: 'education', label: 'Education', emoji: '🎓' },
-    { value: 'vacation', label: 'Vacation', emoji: '✈️' },
-    { value: 'retirement', label: 'Retirement', emoji: '🏖️' },
-    { value: 'other', label: 'Other', emoji: '🎯' }
+    { value: 'emergency', label: 'Emergency Fund' },
+    { value: 'purchase', label: 'Major Purchase' },
+    { value: 'investment', label: 'Investment' },
+    { value: 'debt', label: 'Debt Payoff' },
+    { value: 'education', label: 'Education' },
+    { value: 'vacation', label: 'Vacation' },
+    { value: 'retirement', label: 'Retirement' },
+    { value: 'other', label: 'Other' },
 ];
 
 const CreateGoalModal = ({
@@ -32,6 +37,7 @@ const CreateGoalModal = ({
     editingGoal?: FinancialGoal;
     userAccounts: BankAccount[]; // ✅ Now properly typed
 }) => {
+    const { showAlert } = useAppModal();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -69,9 +75,13 @@ const CreateGoalModal = ({
         }
     }, [editingGoal, isOpen]);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.title || !formData.targetAmount) {
-            alert('Please fill in required fields');
+            await showAlert({
+                title: 'Missing information',
+                message: 'Please fill in the goal title and target amount.',
+                variant: 'warning',
+            });
             return;
         }
 
@@ -92,9 +102,9 @@ const CreateGoalModal = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 max-w-2xl w-full shadow-2xl border border-white/50 my-8">
+            <div className="glass-card my-8 w-full max-w-2xl rounded-2xl p-8">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <h2 className={typography.pageTitle}>
                         {editingGoal ? 'Edit Goal' : 'Create New Goal'}
                     </h2>
                     <button
@@ -116,7 +126,7 @@ const CreateGoalModal = ({
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             placeholder="e.g., Emergency Fund"
-                            className="w-full p-4 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                            className="fancy-input"
                             required
                         />
                     </div>
@@ -131,7 +141,7 @@ const CreateGoalModal = ({
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             placeholder="Why is this goal important to you?"
                             rows={3}
-                            className="w-full p-4 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
+                            className="fancy-input resize-none"
                         />
                     </div>
 
@@ -141,20 +151,22 @@ const CreateGoalModal = ({
                             Category <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {goalCategories.map((cat) => (
+                            {goalCategories.map((cat) => {
+                                const Icon = getGoalCategoryIcon(cat.value);
+                                return (
                                 <button
                                     key={cat.value}
                                     type="button"
                                     onClick={() => setFormData({ ...formData, category: cat.value })}
-                                    className={`p-3 rounded-xl text-sm font-medium transition-all ${formData.category === cat.value
-                                        ? 'bg-indigo-500 text-white shadow-lg scale-105'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    className={`rounded-xl p-3 text-sm font-medium transition-all ${formData.category === cat.value
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                         }`}
                                 >
-                                    <div className="text-2xl mb-1">{cat.emoji}</div>
+                                    <Icon className="mx-auto mb-1 h-5 w-5" />
                                     <div className="text-xs">{cat.label}</div>
                                 </button>
-                            ))}
+                            );})}
                         </div>
                     </div>
 
@@ -171,7 +183,7 @@ const CreateGoalModal = ({
                                     value={formData.targetAmount}
                                     onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
                                     placeholder="10000"
-                                    className="w-full p-4 pl-12 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    className="fancy-input fancy-input-icon"
                                     required
                                     min="0"
                                     step="100"
@@ -190,7 +202,7 @@ const CreateGoalModal = ({
                                     value={formData.currentAmount}
                                     onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
                                     placeholder="0"
-                                    className="w-full p-4 pl-12 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    className="fancy-input fancy-input-icon"
                                     min="0"
                                     step="100"
                                 />
@@ -210,7 +222,7 @@ const CreateGoalModal = ({
                                     type="date"
                                     value={formData.targetDate}
                                     onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-                                    className="w-full p-4 pl-12 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    className="fancy-input fancy-input-icon"
                                 />
                             </div>
                         </div>
@@ -226,7 +238,7 @@ const CreateGoalModal = ({
                                     value={formData.monthlyContribution}
                                     onChange={(e) => setFormData({ ...formData, monthlyContribution: e.target.value })}
                                     placeholder="500"
-                                    className="w-full p-4 pl-12 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                                    className="fancy-input fancy-input-icon"
                                     min="0"
                                     step="50"
                                 />
@@ -243,7 +255,7 @@ const CreateGoalModal = ({
                             type="number"
                             value={formData.priority}
                             onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                            className="w-full p-4 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                            className="fancy-input"
                             min="1"
                             max="10"
                         />
@@ -251,7 +263,7 @@ const CreateGoalModal = ({
 
                     {/* Connected Accounts Info (if available) */}
                     {userAccounts.length > 0 && (
-                        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+                        <div className="rounded-xl bg-indigo-50/60 p-4 ring-1 ring-indigo-200/40">
                             <div className="flex items-start space-x-3">
                                 <div className="text-2xl">💡</div>
                                 <div className="flex-1">
@@ -269,13 +281,13 @@ const CreateGoalModal = ({
                     <div className="flex space-x-3 pt-4">
                         <button
                             onClick={onClose}
-                            className="flex-1 p-4 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 transition-all font-semibold"
+                            className={`${buttons.secondary} flex-1 py-3`}
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className="flex-1 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl hover:shadow-xl transition-all font-semibold"
+                            className={`${buttons.primary} flex-1 py-3`}
                         >
                             {editingGoal ? 'Update Goal' : 'Create Goal'}
                         </button>
@@ -293,7 +305,7 @@ const GoalCard = ({ goal, onEdit, onDelete, onUpdateProgress }: {
     onUpdateProgress: (id: string, amount: number) => void;
 }) => {
     const progress = goal.progress || 0;
-    const categoryEmoji = goalCategories.find(c => c.value === goal.category)?.emoji || '🎯';
+    const CategoryIconComponent = getGoalCategoryIcon(goal.category);
     const isCompleted = goal.isCompleted || progress >= 100;
     const remaining = goal.targetAmount - goal.currentAmount;
 
@@ -302,10 +314,12 @@ const GoalCard = ({ goal, onEdit, onDelete, onUpdateProgress }: {
         : null;
 
     return (
-        <div className={`group bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 ${isCompleted ? 'ring-2 ring-green-500' : ''}`}>
-            <div className="flex items-start justify-between mb-4">
+        <div className={`${surfaces.cardHover} p-6 ${isCompleted ? 'ring-2 ring-emerald-500' : ''}`}>
+            <div className="mb-4 flex items-start justify-between">
                 <div className="flex items-center space-x-3">
-                    <div className="text-4xl">{categoryEmoji}</div>
+                    <div className={iconBadge.muted}>
+                        <CategoryIconComponent className="h-5 w-5" />
+                    </div>
                     <div>
                         <h3 className="text-xl font-bold text-gray-900">{goal.title}</h3>
                         {goal.description && (
@@ -335,9 +349,9 @@ const GoalCard = ({ goal, onEdit, onDelete, onUpdateProgress }: {
                     <span className="text-sm font-semibold text-gray-700">Progress</span>
                     <span className="text-sm font-bold text-gray-900">{progress.toFixed(0)}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                     <div
-                        className={`h-3 rounded-full transition-all duration-1000 ${isCompleted
+                        className={`h-2 rounded-full transition-all duration-1000 ${isCompleted
                             ? 'bg-gradient-to-r from-green-500 to-emerald-600'
                             : 'bg-gradient-to-r from-indigo-500 to-purple-600'
                             }`}
@@ -352,12 +366,12 @@ const GoalCard = ({ goal, onEdit, onDelete, onUpdateProgress }: {
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-gray-50 p-3 rounded-xl">
+                <div className="rounded-xl bg-white/60 p-3 ring-1 ring-white/40">
                     <div className="text-xs text-gray-600 mb-1">Remaining</div>
                     <div className="font-bold text-gray-900">${remaining.toLocaleString()}</div>
                 </div>
                 {monthsToGoal && (
-                    <div className="bg-gray-50 p-3 rounded-xl">
+                    <div className="rounded-xl bg-white/60 p-3 ring-1 ring-white/40">
                         <div className="text-xs text-gray-600 mb-1">Months to Goal</div>
                         <div className="font-bold text-gray-900">{monthsToGoal}</div>
                     </div>
@@ -427,6 +441,7 @@ const GoalCard = ({ goal, onEdit, onDelete, onUpdateProgress }: {
 };
 
 export default function GoalsPage() {
+    const { showAlert, showConfirm } = useAppModal();
     const [goals, setGoals] = useState<FinancialGoal[]>([]);
     const [userAccounts, setUserAccounts] = useState<BankAccount[]>([]); // ✅ State for bank accounts
     const [loading, setLoading] = useState(true);
@@ -483,19 +498,39 @@ export default function GoalsPage() {
                 await fetchGoals();
                 setShowCreateModal(false);
                 setEditingGoal(undefined);
-                alert(isEditing ? '✅ Goal updated!' : '✅ Goal created!');
+                await showAlert({
+                    title: isEditing ? 'Goal updated' : 'Goal created',
+                    message: isEditing
+                        ? 'Your goal changes have been saved.'
+                        : 'Your new financial goal is ready to track.',
+                    variant: 'success',
+                });
             } else {
-                const error = await response.json();
-                alert(`❌ Failed: ${error.error}`);
+                await showAlert({
+                    title: 'Save failed',
+                    message: await parseApiError(response, 'Failed to save goal'),
+                    variant: 'error',
+                });
             }
         } catch (error) {
             console.error('Error saving goal:', error);
-            alert('❌ Network error. Please try again.');
+            await showAlert({
+                title: 'Save failed',
+                message: 'A network error occurred. Please try again.',
+                variant: 'error',
+            });
         }
     };
 
     const handleDeleteGoal = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this goal?')) return;
+        const confirmed = await showConfirm({
+            title: 'Delete goal',
+            message: 'Are you sure you want to delete this goal? This action cannot be undone.',
+            confirmLabel: 'Delete',
+            destructive: true,
+            variant: 'warning',
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`/api/goals?id=${id}`, {
@@ -504,13 +539,25 @@ export default function GoalsPage() {
 
             if (response.ok) {
                 await fetchGoals();
-                alert('✅ Goal deleted!');
+                await showAlert({
+                    title: 'Goal deleted',
+                    message: 'The goal has been removed.',
+                    variant: 'success',
+                });
             } else {
-                alert('❌ Failed to delete goal');
+                await showAlert({
+                    title: 'Delete failed',
+                    message: await parseApiError(response, 'Failed to delete goal'),
+                    variant: 'error',
+                });
             }
         } catch (error) {
             console.error('Error deleting goal:', error);
-            alert('❌ Network error');
+            await showAlert({
+                title: 'Delete failed',
+                message: 'A network error occurred. Please try again.',
+                variant: 'error',
+            });
         }
     };
 
@@ -543,108 +590,72 @@ export default function GoalsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4 mx-auto"></div>
-                    <p className="text-gray-600 text-lg">Loading goals...</p>
+            <PageShell>
+                <AppNav subtitle="Goals" />
+                <div className="flex min-h-[60vh] items-center justify-center">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
                 </div>
-            </div>
+            </PageShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-            {/* Navigation */}
-            <nav className="bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex justify-between h-20">
-                        <div className="flex items-center">
-                            <Link href="/" className="flex items-center">
-                                <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mr-5 shadow-2xl">
-                                    <span className="text-lg font-black text-white">SL</span>
-                                </div>
-                                <div>
-                                    <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                        SaveLoom
-                                    </span>
-                                    <p className="text-sm text-gray-500 font-medium">Financial Goals</p>
-                                </div>
-                            </Link>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/50">
-                                Dashboard
-                            </Link>
-                            <Link href="/analytics" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/50">
-                                Analytics
-                            </Link>
-                            <Link href="/budgets" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/50">
-                                Budgets
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+        <PageShell>
+            <AppNav subtitle="Goals" />
 
-            {/* Content */}
-            <div className="max-w-7xl mx-auto p-6 lg:p-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
+            <div className={layout.page}>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                            Financial Goals
-                        </h1>
-                        <p className="text-xl text-gray-600">Track your progress toward financial freedom</p>
+                        <h1 className={`${typography.pageTitle} mb-1`}>Financial goals</h1>
+                        <p className={typography.pageSubtitle}>Track your progress toward financial freedom</p>
                     </div>
                     <button
                         onClick={() => {
                             setEditingGoal(undefined);
                             setShowCreateModal(true);
                         }}
-                        className="mt-4 md:mt-0 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all font-semibold inline-flex items-center space-x-2 hover:scale-105"
+                        className={`${buttons.primary} mt-4 md:mt-0`}
                     >
-                        <Plus className="w-5 h-5" />
-                        <span>Create Goal</span>
+                        <Plus className="h-4 w-4" />
+                        <span>Create goal</span>
                     </button>
                 </div>
 
-                {/* Summary Stats */}
                 {goals.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                            <div className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Total Goals</div>
-                            <div className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{goals.length}</div>
+                    <div className={layout.gridStats}>
+                        <div className={summaryStat.card}>
+                            <p className={typography.label}>Total goals</p>
+                            <p className={`${summaryStat.value} mt-1`}>{goals.length}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                            <div className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Completed</div>
-                            <div className="text-4xl font-black text-green-600">{completedGoals}</div>
+                        <div className={summaryStat.card}>
+                            <p className={typography.label}>Completed</p>
+                            <p className={`${summaryStat.value} mt-1 text-emerald-600`}>{completedGoals}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                            <div className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Total Target</div>
-                            <div className="text-4xl font-black text-gray-900">${totalTargetAmount.toLocaleString()}</div>
+                        <div className={summaryStat.card}>
+                            <p className={typography.label}>Total target</p>
+                            <p className={`${summaryStat.value} mt-1`}>${totalTargetAmount.toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                            <div className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Overall Progress</div>
-                            <div className="text-4xl font-black bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">{overallProgress.toFixed(0)}%</div>
+                        <div className={summaryStat.card}>
+                            <p className={typography.label}>Overall progress</p>
+                            <p className={`${summaryStat.value} mt-1 text-emerald-600`}>{overallProgress.toFixed(0)}%</p>
                         </div>
                     </div>
                 )}
                 {/* Goals Grid */}
                 {goals.length === 0 ? (
-                    <div className="text-center py-16">
-                        <div className="text-8xl mb-6">🎯</div>
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">No Goals Yet</h2>
-                        <p className="text-gray-600 text-lg mb-8">Set your first financial goal and start tracking your progress</p>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all font-semibold inline-flex items-center space-x-2 hover:scale-105"
-                        >
-                            <Plus className="w-5 h-5" />
-                            <span>Create Your First Goal</span>
+                    <div className="py-12 text-center">
+                        <div className={`${iconBadge.sm} mx-auto mb-3 h-10 w-10`}>
+                            <Target className="h-5 w-5" />
+                        </div>
+                        <h2 className="mb-2 text-lg font-semibold text-slate-900">No goals yet</h2>
+                        <p className="mb-4 text-sm text-slate-600">Set your first financial goal and start tracking progress</p>
+                        <button onClick={() => setShowCreateModal(true)} className={buttons.primary}>
+                            <Plus className="h-4 w-4" />
+                            <span>Create your first goal</span>
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className={layout.gridCards}>
                         {goals.map(goal => (
                             <GoalCard
                                 key={goal.id}
@@ -669,6 +680,6 @@ export default function GoalsPage() {
                 editingGoal={editingGoal}
                 userAccounts={userAccounts} // ✅ Pass bank accounts to modal
             />
-        </div>
+        </PageShell>
     );
 }

@@ -1,40 +1,37 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import SignInButton from "./sign-in-button";
+import PageShell from "~/app/_components/PageShell";
+import { typography } from "~/lib/design";
 
 export default async function SignIn() {
     const session = await auth();
 
-    // If user is already signed in, redirect to dashboard
     if (session) {
         redirect("/");
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+        <PageShell className="flex items-center justify-center">
+            <div className="glass-card w-full max-w-md space-y-8 rounded-2xl p-8">
                 <div className="text-center">
-                    <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <span className="text-2xl font-bold text-white">SL</span>
+                    <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-lg font-bold text-white shadow-lg">
+                        SL
                     </div>
-                    <h2 className="mt-6 text-3xl font-bold text-gray-900">
+                    <h2 className={`${typography.pageTitle} text-2xl sm:text-3xl`}>
                         Welcome to SaveLoom
                     </h2>
-                    <p className="mt-2 text-sm text-gray-600">
+                    <p className="mt-2 text-sm text-slate-600">
                         Your AI-powered financial coach
                     </p>
                 </div>
 
-                <div className="mt-8 space-y-4">
-                    <SignInButton />
+                <SignInButton />
 
-                    <div className="text-center">
-                        <p className="text-xs text-gray-500">
-                            By signing in, you agree to our Terms of Service and Privacy Policy
-                        </p>
-                    </div>
-                </div>
+                <p className="text-center text-xs text-slate-500">
+                    By signing in, you agree to our Terms of Service and Privacy Policy
+                </p>
             </div>
-        </div>
+        </PageShell>
     );
 }
