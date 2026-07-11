@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 
+import MerchantIcon from "@/components/MerchantIcon";
 import type { Transaction } from "@/lib/api";
+import { getMerchantDisplayName } from "@/lib/merchant-icons";
 import { formatCurrency } from "@/lib/money";
 
 interface TransactionRowProps {
@@ -9,7 +11,7 @@ interface TransactionRowProps {
 }
 
 function getDisplayName(merchantName: string | null, description: string): string {
-  return (merchantName || description || "Unknown").trim();
+  return getMerchantDisplayName(merchantName, description);
 }
 
 function formatCategory(category: string): string {
@@ -21,13 +23,6 @@ function formatDate(dateString: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-function merchantInitials(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
-  return `${words[0]![0] ?? ""}${words[1]![0] ?? ""}`.toUpperCase();
 }
 
 export default function TransactionRow({ transaction, showAccount = true }: TransactionRowProps) {
@@ -42,11 +37,11 @@ export default function TransactionRow({ transaction, showAccount = true }: Tran
 
   return (
     <View style={styles.row}>
-      <View style={[styles.icon, isExpense ? styles.iconExpense : styles.iconIncome]}>
-        <Text style={[styles.iconText, isExpense ? styles.iconTextExpense : styles.iconTextIncome]}>
-          {merchantInitials(displayName)}
-        </Text>
-      </View>
+      <MerchantIcon
+        merchantName={transaction.merchantName}
+        description={transaction.description}
+        category={transaction.category}
+      />
 
       <View style={styles.content}>
         <Text style={styles.name} numberOfLines={1}>
@@ -74,29 +69,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
-  },
-  icon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconExpense: {
-    backgroundColor: "#fee2e2",
-  },
-  iconIncome: {
-    backgroundColor: "#d1fae5",
-  },
-  iconText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  iconTextExpense: {
-    color: "#b91c1c",
-  },
-  iconTextIncome: {
-    color: "#047857",
   },
   content: {
     flex: 1,
