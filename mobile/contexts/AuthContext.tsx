@@ -217,3 +217,11 @@ export function getDevSnapshotAccounts() {
 export function getDevSnapshotTransactions() {
   return (devSnapshot as { transactions?: import("@/lib/api").Transaction[] }).transactions ?? [];
 }
+
+export function getDevSnapshotInsights() {
+  return (devSnapshot as { insights?: import("@/lib/api").AIInsight[] }).insights ?? [];
+}
+
+export function getDevSnapshotRecommendations() {
+  return (devSnapshot as { recommendations?: import("@/lib/api").Recommendation[] }).recommendations ?? [];
+}

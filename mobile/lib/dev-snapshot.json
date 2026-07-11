@@ -90,5 +90,36 @@
       "date": "2026-06-25T09:00:00.000Z",
       "bankAccount": { "accountName": "Plaid Saving", "bankName": "Chase" }
     }
+  ],
+  "insights": [
+    {
+      "id": "snapshot-insight-1",
+      "type": "budget_alert",
+      "title": "Food spending above typical",
+      "content": "Your food and drink category is trending higher than your 90-day average.",
+      "timeframe": "this_month",
+      "metric": "spending",
+      "value": 214.63,
+      "change": 12.5,
+      "createdAt": "2026-07-01T10:00:00.000Z",
+      "isRead": false,
+      "priority": "medium"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "snapshot-rec-1",
+      "type": "saving",
+      "category": "subscription_optimization",
+      "title": "Review recurring subscriptions",
+      "description": "You have multiple streaming and software subscriptions. Audit them for unused services.",
+      "impact": "Save up to $25/month",
+      "priority": "high",
+      "confidence": 0.75,
+      "potentialSavings": 25,
+      "isRead": false,
+      "isActioned": false,
+      "createdAt": "2026-07-01T10:00:00.000Z"
+    }
   ]
 }

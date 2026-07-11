@@ -125,3 +125,52 @@ export interface TransactionsResponse {
 export async function fetchTransactions(token: string) {
   return apiFetch<TransactionsResponse>("/api/transactions", { token });
 }
+
+export interface AIInsight {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  timeframe: string;
+  metric: string | null;
+  value: number | null;
+  change: number | null;
+  createdAt: string;
+  isRead: boolean;
+  priority: string;
+}
+
+export interface InsightsResponse {
+  insights: AIInsight[];
+  total: number;
+}
+
+export interface Recommendation {
+  id: string;
+  type: string;
+  category: string;
+  title: string;
+  description: string;
+  impact: string;
+  priority: string;
+  confidence: number;
+  potentialSavings: number | null;
+  isRead: boolean;
+  isActioned: boolean;
+  createdAt: string;
+}
+
+export interface RecommendationsResponse {
+  success: boolean;
+  recommendations: Recommendation[];
+}
+
+export async function fetchInsights(token: string, limit = 20) {
+  return apiFetch<InsightsResponse>(`/api/ai/insights?limit=${limit}`, { token });
+}
+
+export async function fetchRecommendations(token: string, limit = 10) {
+  return apiFetch<RecommendationsResponse>(`/api/recommendations?limit=${limit}&status=pending`, {
+    token,
+  });
+}

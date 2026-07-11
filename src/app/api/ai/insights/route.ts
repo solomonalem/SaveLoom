@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '~/server/db';
-import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
+import { parseMoney } from "~/lib/money";
+
 export async function GET(req: NextRequest) {
     try {
-        const session = await auth();
+        const userId = await getRequestUserId(req);
 
-
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
         if (type && type !== 'all') {
             insights = await db.aIInsight.findMany({
                 where: {
-                    userId: session.user.id,
+                    userId,
                     type: type
                 },
                 orderBy: { createdAt: 'desc' },
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
             });
         } else {
             insights = await db.aIInsight.findMany({
-                where: { userId: session.user.id },
+                where: { userId },
                 orderBy: { createdAt: 'desc' },
                 take: limit,
                 skip: offset
@@ -37,7 +38,10 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json({
-            insights,
+            insights: insights.map((insight) => ({
+                ...insight,
+                value: insight.value != null ? parseMoney(insight.value) : null,
+            })),
             total: insights.length
         });
     } catch (error) {

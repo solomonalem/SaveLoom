@@ -6,6 +6,8 @@ const MOBILE_API_PREFIXES = [
   "/api/dashboard/stats",
   "/api/bank-accounts",
   "/api/transactions",
+  "/api/ai/insights",
+  "/api/recommendations",
 ];
 
 function isMobileApi(pathname: string): boolean {
@@ -44,5 +46,7 @@ export const config = {
     "/api/dashboard/stats",
     "/api/bank-accounts",
     "/api/transactions",
+    "/api/ai/insights",
+    "/api/recommendations",
   ],
 };

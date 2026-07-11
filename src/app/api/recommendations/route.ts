@@ -1,13 +1,14 @@
 //src/app/api/recommendations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { db } from '~/server/db';
+import { parseMoney } from "~/lib/money";
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await auth();
+        const userId = await getRequestUserId(req);
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -16,7 +17,11 @@ export async function GET(req: NextRequest) {
         const status = searchParams.get('status');
         const limit = parseInt(searchParams.get('limit') || '20');
 
-        let where: any = { userId: session.user.id };
+        const where: {
+            userId: string;
+            priority?: string;
+            isActioned?: boolean;
+        } = { userId };
 
         if (priority && priority !== 'all') {
             where.priority = priority;
@@ -39,7 +44,10 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            recommendations
+            recommendations: recommendations.map((rec) => ({
+                ...rec,
+                potentialSavings: rec.potentialSavings != null ? parseMoney(rec.potentialSavings) : null,
+            })),
         });
     } catch (error) {
         console.error('Error fetching recommendations:', error);
