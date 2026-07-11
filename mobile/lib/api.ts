@@ -218,3 +218,21 @@ export async function fetchBudgets(token: string) {
 export async function fetchGoals(token: string) {
   return apiFetch<GoalsResponse>("/api/goals", { token });
 }
+
+export async function createPlaidLinkToken(token: string) {
+  return apiFetch<{ link_token: string }>("/api/plaid/link-token", {
+    method: "POST",
+    token,
+  });
+}
+
+export async function exchangePlaidPublicToken(token: string, publicToken: string) {
+  return apiFetch<{ success: boolean; accounts: number; message: string }>(
+    "/api/plaid/exchange-token",
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify({ public_token: publicToken }),
+    },
+  );
+}

@@ -8,9 +8,11 @@
     "scheme": "saveloom",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saveloom.app"
     },
     "android": {
+      "package": "com.saveloom.app",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -27,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-splash-screen",
         {
@@ -35,7 +38,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.35226087744-6in6sr44pj6voo80r846bpl3bq47kth3"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

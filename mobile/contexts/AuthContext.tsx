@@ -70,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    if (DEV_BYPASS_AUTH) return;
     await deleteStoredToken(TOKEN_KEY);
     setToken(null);
     setUser(null);

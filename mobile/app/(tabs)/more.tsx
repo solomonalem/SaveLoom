@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { API_URL } from "@/lib/config";
+import { API_URL, DEV_BYPASS_AUTH } from "@/lib/config";
+import { getRuntimeLabel, HAS_DEV_BUILD, IS_EXPO_GO } from "@/lib/native-capabilities";
 
 export default function MoreScreen() {
   const { user, signOut } = useAuth();
@@ -19,6 +20,24 @@ export default function MoreScreen() {
         <Text style={styles.label}>API</Text>
         <Text style={styles.valueSmall}>{API_URL}</Text>
       </View>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>Runtime</Text>
+        <Text style={styles.valueSmall}>{getRuntimeLabel()}</Text>
+        <Text style={styles.valueSmall}>
+          {HAS_DEV_BUILD
+            ? "Native Google sign-in and Plaid Link are available."
+            : IS_EXPO_GO
+              ? "Expo Go — browser sign-in and web bank linking."
+              : "Web preview mode."}
+        </Text>
+      </View>
+
+      {DEV_BYPASS_AUTH ? (
+        <Text style={styles.devBanner}>
+          Dev bypass is on. Set EXPO_PUBLIC_DEV_BYPASS_AUTH=false to test real sign-in.
+        </Text>
+      ) : null}
 
       <Pressable style={styles.button} onPress={() => void signOut()}>
         <Text style={styles.buttonText}>Sign out</Text>
@@ -63,6 +82,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: "#64748b",
+    lineHeight: 18,
+  },
+  devBanner: {
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#fef3c7",
+    color: "#92400e",
+    fontSize: 12,
+    textAlign: "center",
   },
   button: {
     marginTop: 12,

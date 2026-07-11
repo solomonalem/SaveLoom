@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -6,71 +6,47 @@ import {
   Text,
   View,
 } from "react-native";
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { GOOGLE_ANDROID_CLIENT_ID, GOOGLE_WEB_CLIENT_ID } from "@/lib/config";
-
-WebBrowser.maybeCompleteAuthSession();
+import { getGoogleSignInSetupHint } from "@/lib/config";
+import { getRuntimeLabel, IS_EXPO_GO } from "@/lib/native-capabilities";
+import { isNativeGoogleSignInAvailable } from "@/lib/native-google-auth";
+import { signInWithGoogleUnified } from "@/lib/sign-in";
 
 export default function LoginScreen() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithAccessToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    selectAccount: true,
-  });
-
-  useEffect(() => {
-    if (!response) return;
-
-    if (response.type === "dismiss" || response.type === "cancel") {
-      setSubmitting(false);
-      return;
-    }
-
-    if (response.type !== "success") {
-      setSubmitting(false);
-      setError("Google sign-in did not complete.");
-      return;
-    }
-
-    const idToken =
-      response.params?.id_token ?? response.authentication?.idToken;
-
-    if (!idToken) {
-      setSubmitting(false);
-      setError("No ID token received from Google.");
-      return;
-    }
-
-    void (async () => {
-      try {
-        await signInWithGoogle(idToken);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Sign-in failed on the server.",
-        );
-      } finally {
-        setSubmitting(false);
-      }
-    })();
-  }, [response]);
+  const setupHint = getGoogleSignInSetupHint();
+  const usesNativeGoogle = isNativeGoogleSignInAvailable();
 
   const handlePress = async () => {
     setError(null);
     setSubmitting(true);
+
     try {
-      await promptAsync();
+      const result = await signInWithGoogleUnified();
+
+      if (result.method === "cancel") {
+        return;
+      }
+
+      if (result.method === "error") {
+        setError(result.message);
+        return;
+      }
+
+      if (result.method === "native") {
+        await signInWithGoogle(result.idToken);
+        return;
+      }
+
+      await signInWithAccessToken(result.accessToken);
     } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed.");
+    } finally {
       setSubmitting(false);
-      setError(
-        err instanceof Error ? err.message : "Could not open Google sign-in.",
-      );
     }
   };
 
@@ -85,11 +61,8 @@ export default function LoginScreen() {
       </View>
 
       <Pressable
-        style={[
-          styles.button,
-          (submitting || !request) && styles.buttonDisabled,
-        ]}
-        disabled={submitting || !request}
+        style={[styles.button, submitting && styles.buttonDisabled]}
+        disabled={submitting}
         onPress={() => void handlePress()}
       >
         {submitting ? (
@@ -101,9 +74,17 @@ export default function LoginScreen() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      {setupHint ? <Text style={styles.hint}>{setupHint}</Text> : null}
+
       <Text style={styles.footer}>
-        Opens Google sign-in in your browser, then returns you to the app.
+        {usesNativeGoogle
+          ? "Uses native Google sign-in in your development build."
+          : IS_EXPO_GO
+            ? "Opens Google sign-in in your browser, then returns to the app."
+            : "Sign in with your SaveLoom Google account."}
       </Text>
+
+      <Text style={styles.runtime}>Runtime: {getRuntimeLabel()}</Text>
     </View>
   );
 }
@@ -164,10 +145,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
   },
+  hint: {
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: "#fef3c7",
+    color: "#92400e",
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+  },
   footer: {
     marginTop: 24,
     textAlign: "center",
     fontSize: 12,
     color: "#94a3b8",
+    lineHeight: 18,
+  },
+  runtime: {
+    marginTop: 8,
+    textAlign: "center",
+    fontSize: 11,
+    color: "#cbd5e1",
   },
 });

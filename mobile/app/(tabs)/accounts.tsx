@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,9 +10,10 @@ import {
 import { useFocusEffect } from "expo-router";
 
 import AccountRow from "@/components/AccountRow";
+import PlaidLinkButton from "@/components/PlaidLinkButton";
 import { useAuth, getDevSnapshotAccounts } from "@/contexts/AuthContext";
 import { fetchBankAccounts, type BankAccount } from "@/lib/api";
-import { API_URL, DEV_BYPASS_AUTH, getOfflineApiReason, isDevMockSession } from "@/lib/config";
+import { getOfflineApiReason, isDevMockSession } from "@/lib/config";
 import { DEV_MOCK_ACCOUNTS } from "@/lib/dev-mock";
 import { formatCurrency } from "@/lib/money";
 
@@ -88,10 +87,6 @@ export default function AccountsScreen() {
     [accounts],
   );
 
-  const openWebConnect = () => {
-    void Linking.openURL(API_URL);
-  };
-
   if ((loading || authLoading) && accounts.length === 0) {
     return (
       <View style={styles.centered}>
@@ -136,19 +131,18 @@ export default function AccountsScreen() {
         <View style={styles.emptyCard}>
           <Text style={styles.emptyTitle}>No accounts yet</Text>
           <Text style={styles.emptyBody}>
-            Connect a bank on the SaveLoom web app to see your accounts here.
+            Connect a bank to import accounts and transactions into SaveLoom.
           </Text>
         </View>
       )}
 
-      <Pressable style={styles.connectButton} onPress={openWebConnect}>
-        <Text style={styles.connectButtonText}>Connect a bank on web</Text>
-      </Pressable>
-
-      <Text style={styles.footerNote}>
-        Plaid linking in the mobile app is coming soon. For now, use the web dashboard to add or
-        reconnect banks.
-      </Text>
+      <View style={styles.linkSection}>
+        <PlaidLinkButton
+          token={token}
+          disabled={isDevMockSession(token) || usingDevSnapshot}
+          onLinked={() => void loadAccounts()}
+        />
+      </View>
     </ScrollView>
   );
 }
@@ -234,23 +228,7 @@ const styles = StyleSheet.create({
     color: "#64748b",
     lineHeight: 20,
   },
-  connectButton: {
+  linkSection: {
     marginTop: 16,
-    backgroundColor: "#4f46e5",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  connectButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  footerNote: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "#94a3b8",
-    textAlign: "center",
-    lineHeight: 18,
   },
 });
