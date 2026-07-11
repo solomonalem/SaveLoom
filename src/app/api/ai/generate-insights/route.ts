@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
-import AIInsightsEngine from '~/lib/ai-insights-engine'; // Now uses Claude!
-import { env } from '~/env';
+import { generateUserInsights } from '~/lib/insights-generation';
+import { normalizeAnthropicError } from '~/lib/anthropic-errors';
 
 export async function POST(req: NextRequest) {
     try {
@@ -13,45 +13,44 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check if Claude API key is configured
-        if (!env.ANTHROPIC_API_KEY) {
-            console.error('❌ ANTHROPIC_API_KEY not configured');
-            return NextResponse.json(
-                { error: 'Claude AI not configured. Please add ANTHROPIC_API_KEY to environment.' },
-                { status: 500 }
-            );
+        let force = false;
+        let useAi = false;
+
+        try {
+            const body = await req.json();
+            force = Boolean(body?.force);
+            useAi = Boolean(body?.useAi);
+        } catch {
+            // Empty body is fine — defaults to rule-based refresh
         }
 
-        const aiEngine = new AIInsightsEngine(db);
-        await aiEngine.generateInsights(session.user.id);
+        const result = await generateUserInsights(db, session.user.id, { force, useAi });
 
         return NextResponse.json({
             success: true,
-            message: '🤖 Claude AI insights generated successfully!',
-            provider: 'Claude AI (Anthropic)'
+            ...result,
         });
-    } catch (error: any) {
-        console.error('❌ Error generating Claude AI insights:', error);
+    } catch (error: unknown) {
+        console.error('❌ Error generating insights:', error);
 
-        // Handle specific errors
-        if (error.message?.includes('Invalid API key')) {
-            return NextResponse.json(
-                { error: 'Invalid Claude API key. Please check your configuration.' },
-                { status: 401 }
-            );
+        const normalized = normalizeAnthropicError(error);
+        const message = normalized.message;
+
+        if (message.includes('Invalid Anthropic API key') || message.includes('Anthropic API key')) {
+            return NextResponse.json({ error: message }, { status: 401 });
         }
 
-        if (error.message?.includes('rate limit')) {
-            return NextResponse.json(
-                { error: 'Claude API rate limit reached. Please try again later.' },
-                { status: 429 }
-            );
+        if (message.includes('rate limit') || message.includes('refresh limit')) {
+            return NextResponse.json({ error: message }, { status: 429 });
+        }
+
+        if (message.includes('No transaction') || message.includes('Connect a bank') || message.includes('Sync transactions')) {
+            return NextResponse.json({ error: message }, { status: 400 });
         }
 
         return NextResponse.json(
             {
-                error: 'Failed to generate AI insights',
-                details: error.message
+                error: message,
             },
             { status: 500 }
         );

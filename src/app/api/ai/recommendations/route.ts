@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
 
 import { db } from '~/server/db';
-import AIInsightsEngine from '~/lib/ai-insights-engine';
+import { generateUserInsights } from '~/lib/insights-generation';
 
 export async function GET(req: NextRequest) {
     try {
@@ -60,10 +60,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const insightsEngine = new AIInsightsEngine(db);
-
-        // Generate recommendations based on current data
-        await insightsEngine.generateInsights(session.user.id);
+        await generateUserInsights(db, session.user.id, { useAi: false });
 
         const recommendations = await db.recommendation.findMany({
             where: { userId: session.user.id },

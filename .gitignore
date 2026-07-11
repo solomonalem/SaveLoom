@@ -42,5 +42,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# expo / react native
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/.env
+mobile/.env.local
+
 # idea files
 .idea

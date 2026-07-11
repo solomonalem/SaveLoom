@@ -120,6 +120,12 @@ model User {
     insights        AIInsight[]
     notifications   Notification[]
 
+    // Cached AI insights — regenerate only when financial data fingerprint changes
+    aiInsightsFingerprint  String?
+    aiInsightsGeneratedAt  DateTime?
+    aiInsightsSource       String? // "claude" | "algorithmic"
+    aiInsightsLastForcedAt DateTime?
+
     createdAt         DateTime           @default(now())
     updatedAt         DateTime           @updatedAt
     Post              Post[]
@@ -303,7 +309,7 @@ model GoalContribution {
     // Source tracking
     sourceType      String // "manual", "transaction", "automatic", "transfer"
     sourceAccountId String? // Which bank account it came from
-    transactionId   String? // Link to transaction if applicable
+    transactionId   String? @unique // Link to transaction if applicable
 
     // Metadata
     note          String?

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 //src/app/api/transactions/route.ts
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
+import { parseMoney } from "~/lib/money";
 
 export async function GET(req: NextRequest) {
     try {
@@ -30,8 +31,11 @@ export async function GET(req: NextRequest) {
         });
 
         return NextResponse.json({
-            transactions,
-            count: transactions.length
+            transactions: transactions.map((t) => ({
+                ...t,
+                amount: parseMoney(t.amount),
+            })),
+            count: transactions.length,
         });
     } catch (error) {
         console.error('Error fetching transactions:', error);

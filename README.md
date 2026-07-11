@@ -104,6 +104,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## For AI assistants
+
+If you are an AI agent continuing work in a **new chat**, read **[AGENTS.md](./AGENTS.md)** first.
+
+Cursor-specific: skill at [`.cursor/skills/saveloom/SKILL.md`](.cursor/skills/saveloom/SKILL.md), rules in [`.cursor/rules/`](.cursor/rules/).
+
 ## Project structure
 
 ```
@@ -153,6 +159,7 @@ src/
 | Analytics | `/api/analytics`, `/api/financial-health` |
 | AI | `/api/ai/insights`, `/api/ai/recommendations`, `/api/ai/generate-insights` |
 | Onboarding | `/api/onboarding`, `/api/onboarding/status` |
+| Dashboard | `/api/dashboard/stats` |
 
 ## Deployment
 

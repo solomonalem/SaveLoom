@@ -20,6 +20,8 @@ import {
     Award,
     Loader2
 } from 'lucide-react';
+import { useAppModal } from '~/app/_components/modal/ModalProvider';
+import { buttons, iconBadge, iconBadgeTint, summaryStat, surfaces, typography } from '~/lib/design';
 
 interface FinancialHealthData {
     overallScore: number;
@@ -128,16 +130,14 @@ const MetricCard = ({ title, value, icon, trend, subtitle }: {
     };
 
     return (
-        <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-                <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl">
-                    <div className="text-white">{icon}</div>
-                </div>
+        <div className={`${surfaces.cardHover} p-4`}>
+            <div className="mb-2 flex items-center justify-between">
+                <div className={iconBadge.sm}>{icon}</div>
                 {getTrendIcon()}
             </div>
-            <div className="text-2xl font-black text-gray-900 mb-1">{value}</div>
-            <div className="text-sm text-gray-600 font-medium">{title}</div>
-            {subtitle && <div className="text-xs text-gray-500 mt-1">{subtitle}</div>}
+            <div className={`${summaryStat.value} mb-0.5`}>{value}</div>
+            <div className="text-xs font-medium text-slate-600">{title}</div>
+            {subtitle && <div className="mt-0.5 text-xs text-slate-500">{subtitle}</div>}
         </div>
     );
 };
@@ -164,9 +164,9 @@ const ProgressBar = ({ label, current, target, color = "indigo" }: {
                     ${current.toLocaleString()} / ${target.toLocaleString()}
                 </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="h-2 w-full rounded-full bg-slate-100">
                 <div
-                    className={`h-3 bg-gradient-to-r ${colorClasses[color]} rounded-full transition-all duration-700 ease-out`}
+                    className={`h-2 bg-gradient-to-r ${colorClasses[color]} rounded-full transition-all duration-700 ease-out`}
                     style={{ width: `${progress}%` }}
                 />
             </div>
@@ -177,9 +177,9 @@ const ProgressBar = ({ label, current, target, color = "indigo" }: {
 
 const AchievementBadge = ({ achievement }: { achievement: any }) => {
     return (
-        <div className={`p-4 rounded-2xl border-2 transition-all duration-300 ${achievement.earned
-            ? 'bg-gradient-to-r from-yellow-100 to-amber-100 border-yellow-300 shadow-lg'
-            : 'bg-gray-100 border-gray-300 opacity-60'
+        <div className={`rounded-xl p-4 transition-all duration-300 ${achievement.earned
+            ? 'glass-card ring-2 ring-amber-300/50 shadow-md'
+            : 'bg-slate-50/60 opacity-60 ring-1 ring-slate-200/40'
             }`}>
             <div className="text-center">
                 <div className="text-3xl mb-2">{achievement.icon}</div>
@@ -213,33 +213,34 @@ const QuickActionCard = ({ action, onTakeAction }: {
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-300 group">
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                    <h4 className="font-bold text-gray-900 mb-2">{action.title}</h4>
-                    <p className="text-sm text-gray-600 mb-3">{action.description}</p>
-                    <div className="text-sm text-green-600 font-semibold">{action.impact}</div>
+        <div className={`${surfaces.cardHover} p-4`}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                    <h4 className="mb-1 text-sm font-semibold text-slate-900">{action.title}</h4>
+                    <p className="mb-2 text-xs leading-relaxed text-slate-600">{action.description}</p>
+                    <div className="text-xs font-medium text-emerald-600">{action.impact}</div>
                     {action.estimatedSavings && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="mt-1 text-xs text-slate-500">
                             Potential savings: ${action.estimatedSavings}/month
                         </div>
                     )}
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r ${getPriorityColor(action.priority)}`}>
+                <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-600">
                     {getPriorityLabel(action.priority)}
-                </div>
+                </span>
             </div>
             <button
                 onClick={() => onTakeAction(action.id)}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-2xl font-semibold hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className={`${buttons.primary} w-full text-xs`}
             >
-                Take Action
+                Take action
             </button>
         </div>
     );
 };
 
 export default function FinancialHealthDashboard() {
+    const { showAlert } = useAppModal();
     const [healthData, setHealthData] = useState<FinancialHealthData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -272,10 +273,7 @@ export default function FinancialHealthDashboard() {
 
 
     // Handle action clicks
-    const handleTakeAction = (actionId: string) => {
-        console.log('🎯 Taking action:', actionId);
-
-        // Route to appropriate action based on ID
+    const handleTakeAction = async (actionId: string) => {
         switch (actionId) {
             case 'budget_setup':
             case 'set_food_budget':
@@ -283,19 +281,31 @@ export default function FinancialHealthDashboard() {
                 break;
             case 'emergency_fund':
             case 'increase_savings':
-                // Could open a modal or navigate to savings setup
-                alert('💰 Great choice! Let\'s help you increase your savings rate.');
+                await showAlert({
+                    title: 'Increase savings',
+                    message: 'Review your budgets and goals to find room to save more each month.',
+                    variant: 'info',
+                    confirmLabel: 'Got it',
+                });
                 break;
             case 'subscription_review':
             case 'review_netflix':
-                // Could integrate with subscription detection
-                alert('💳 We\'ll help you identify unused subscriptions to cancel.');
+                await showAlert({
+                    title: 'Review subscriptions',
+                    message: 'Check Insights for recurring charges you may be able to reduce or cancel.',
+                    variant: 'info',
+                    confirmLabel: 'Got it',
+                });
                 break;
             case 'spending_review':
                 window.location.href = '/analytics';
                 break;
             default:
-                alert('🚀 This feature is coming soon!');
+                await showAlert({
+                    title: 'Coming soon',
+                    message: 'This guided action is not available yet.',
+                    variant: 'info',
+                });
         }
     };
 
@@ -303,12 +313,12 @@ export default function FinancialHealthDashboard() {
         fetchHealthData();
     }, []);
 
-    const getScoreEmoji = (score: number) => {
-        if (score >= 90) return '🏆';
-        if (score >= 80) return '🎉';
-        if (score >= 70) return '👍';
-        if (score >= 60) return '🤔';
-        return '⚠️';
+    const getScoreIcon = (score: number) => {
+        if (score >= 90) return Trophy;
+        if (score >= 80) return Star;
+        if (score >= 70) return CheckCircle;
+        if (score >= 60) return Clock;
+        return AlertTriangle;
     };
 
     const getScoreLabel = (score: number) => {
@@ -336,15 +346,14 @@ export default function FinancialHealthDashboard() {
 
     if (error && !healthData) {
         return (
-            <div className="text-center py-16">
-                <div className="text-6xl mb-4">⚠️</div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Unable to Load Financial Health</h3>
-                <p className="text-gray-600 mb-6">{error}</p>
-                <button
-                    onClick={fetchHealthData}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:shadow-xl transition-all duration-300 font-semibold"
-                >
-                    Try Again
+            <div className="py-16 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50">
+                    <AlertTriangle className="h-6 w-6 text-amber-600" />
+                </div>
+                <h3 className={`${typography.sectionTitle} mb-2`}>Unable to load financial health</h3>
+                <p className="mb-6 text-slate-600">{error}</p>
+                <button onClick={fetchHealthData} className={buttons.primary}>
+                    Try again
                 </button>
             </div>
         );
@@ -352,11 +361,13 @@ export default function FinancialHealthDashboard() {
 
     if (!healthData) return null;
 
+    const ScoreIcon = getScoreIcon(healthData.overallScore);
+
     return (
         <div className="space-y-8">
             {/* Error Banner */}
             {error && (
-                <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-2xl">
+                <div className="rounded-xl bg-amber-50/60 px-4 py-3 text-amber-800 ring-1 ring-amber-200/40">
                     <div className="flex items-center">
                         <AlertTriangle className="w-5 h-5 mr-2" />
                         <span className="text-sm">Using sample data. Connect your bank accounts for real insights.</span>
@@ -369,13 +380,13 @@ export default function FinancialHealthDashboard() {
                 <div className="flex items-center justify-center mb-6">
                     <div className="relative">
                         <ScoreRing score={healthData.overallScore} size={160} strokeWidth={12} />
-                        <div className="absolute -top-4 -right-4 text-4xl">
-                            {getScoreEmoji(healthData.overallScore)}
+                        <div className="absolute -right-4 -top-4 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm">
+                            <ScoreIcon className="h-5 w-5 text-indigo-600" />
                         </div>
                     </div>
                 </div>
-                <h2 className="text-4xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                    Financial Health Score
+                <h2 className={`${typography.pageTitle} mb-2`}>
+                    Financial health score
                 </h2>
                 <p className="text-xl text-gray-600 mb-4">
                     {getScoreLabel(healthData.overallScore)} Financial Wellness
@@ -435,8 +446,8 @@ export default function FinancialHealthDashboard() {
             </div>
 
             {/* Score Breakdown */}
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className={`${surfaces.card} p-4`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                     <Heart className="w-6 h-6 text-red-500 mr-3" />
                     Health Score Breakdown
                 </h3>
@@ -465,8 +476,8 @@ export default function FinancialHealthDashboard() {
             </div>
 
             {/* Goals Progress */}
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className={`${surfaces.card} p-4`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                     <Target className="w-6 h-6 text-blue-500 mr-3" />
                     Goal Progress
                 </h3>
@@ -494,8 +505,8 @@ export default function FinancialHealthDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className={`${surfaces.card} p-4`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                     <Zap className="w-6 h-6 text-yellow-500 mr-3" />
                     Quick Actions to Improve Your Score
                 </h3>
@@ -512,8 +523,8 @@ export default function FinancialHealthDashboard() {
             </div>
 
             {/* Achievements */}
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className={`${surfaces.card} p-4`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                     <Award className="w-6 h-6 text-purple-500 mr-3" />
                     Financial Achievements
                 </h3>
@@ -526,38 +537,38 @@ export default function FinancialHealthDashboard() {
             </div>
 
             {/* AI Integration Section */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-3xl shadow-xl text-white">
-                <div className="flex items-center justify-between">
+            <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-8 text-white shadow-xl">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                     <div>
-                        <h3 className="text-2xl font-bold mb-2 flex items-center">
-                            🤖 Claude AI Analysis
+                        <h3 className="mb-2 flex items-center gap-2 text-xl font-semibold">
+                            <Zap className="h-5 w-5 text-indigo-300" />
+                            Claude AI analysis
                         </h3>
-                        <p className="text-indigo-100 mb-4">
-                            Your financial health score is powered by Claude AI analysis of your spending patterns,
-                            budget performance, and financial behaviors.
+                        <p className="max-w-2xl text-sm leading-relaxed text-slate-300">
+                            Your score is powered by Claude analysis of spending patterns,
+                            budget performance, and financial behavior.
                         </p>
-                        <div className="flex space-x-4">
+                        <div className="mt-6 flex flex-wrap gap-3">
                             <button
                                 onClick={() => window.location.href = '/insights'}
-                                className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-semibold hover:shadow-xl transition-all duration-300 hover:scale-105"
+                                className={buttons.primary}
                             >
-                                View AI Insights
+                                View AI insights
                             </button>
                             <button
                                 onClick={fetchHealthData}
-                                className="bg-white/20 text-white border border-white/30 px-6 py-3 rounded-2xl font-semibold hover:bg-white/30 transition-all duration-300"
+                                className={buttons.secondary}
                             >
-                                Refresh Analysis
+                                Refresh analysis
                             </button>
                         </div>
                     </div>
-                    <div className="text-6xl opacity-50">🧠</div>
                 </div>
             </div>
 
             {/* Tips Section */}
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+            <div className={`${surfaces.card} p-4`}>
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                     <Star className="w-6 h-6 text-yellow-500 mr-3" />
                     Financial Health Tips
                 </h3>

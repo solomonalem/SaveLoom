@@ -4,6 +4,8 @@ import Link from "next/link";
 import PlaidLink from "./PlaidLink";
 import ConnectedAccounts from "./ConnectedAccounts";
 import TransactionHistory from "./TransactionHistory";
+import AppNav from "./AppNav";
+import PageShell from "./PageShell";
 import { useState, useEffect } from 'react';
 import {
     TrendingUp,
@@ -17,12 +19,22 @@ import {
     ArrowRight,
     CheckCircle,
     Clock,
-    Shield, Zap,
+    Shield,
+    Zap,
     AlertCircle,
     X,
+    User,
+    Building2,
+    ChevronDown,
+    DollarSign,
+    Activity,
 } from 'lucide-react';
-
-import { signOut } from "next-auth/react";
+import { buttons, iconBadge, surfaces, typography } from "~/lib/design";
+import {
+  formatCurrency,
+  formatSignedCurrency,
+  formatSavingsRate,
+} from "~/lib/money";
 
 interface DashboardClientProps {
     user: {
@@ -36,81 +48,84 @@ interface Stats {
     transactionsTracked: number;
     totalBalance: number;
     monthlyExpenses: number;
+    monthlyIncome: number;
+    netCashFlow: number;
+    savingsRate: number | null;
+    avgDailySpend: number;
+    topCategory: string | null;
+    topCategoryAmount: number;
+    hasRecentActivity: boolean;
 }
 
-const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }: {
-    title: string;
-    value: string;
-    icon: React.ComponentType<any>;
-    color: string;
-    subtitle?: string;
-    trend?: 'up' | 'down' | 'stable';
-}) => {
-    const getTrendIcon = () => {
-        if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-500" />;
-        if (trend === 'down') return <TrendingUp className="w-4 h-4 text-red-500 rotate-180" />;
-        return null;
-    };
-
-    return (
-        <div className="group bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl hover:scale-[1.02] transition-all duration-500">
-            <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl bg-gradient-to-br ${color} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6 text-white" />
-                </div>
-                {getTrendIcon()}
-            </div>
-            <div className={`text-3xl font-black bg-gradient-to-r ${color} bg-clip-text text-transparent mb-2`}>
-                {value}
-            </div>
-            <div className="text-sm font-semibold text-gray-700">{title}</div>
-            {subtitle && <div className="text-xs text-gray-500 mt-1">{subtitle}</div>}
-        </div>
-    );
+const SectionHeader = ({ title, defaultOpen = true }: { title: string; defaultOpen?: boolean }) => {
+    const [open, setOpen] = useState(defaultOpen);
+    return { open, header: (
+        <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="flex w-full items-center justify-between pb-3"
+        >
+            <h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+            <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${open ? "" : "-rotate-90"}`} />
+        </button>
+    )};
 };
 
-const ActionCard = ({
-    title,
-    description,
-    icon,
-    href,
-    gradient,
-    status = 'pending',
-    buttonText = 'Get Started'
-}: {
+const DashStatCard = ({ title, value, subtitle, icon: Icon, trend, iconBg = "bg-indigo-50/80", iconColor = "text-indigo-600" }: {
+    title: string;
+    value: string;
+    subtitle?: string;
+    icon: React.ComponentType<{ className?: string }>;
+    trend?: number;
+    iconBg?: string;
+    iconColor?: string;
+}) => (
+    <div className="glass-card rounded-2xl p-5 transition-all hover:shadow-lg hover:border-white/80">
+        <div className="mb-3 flex items-start justify-between">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}>
+                <Icon className="h-5 w-5" />
+            </div>
+            {trend !== undefined && (
+                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    trend > 0 ? "trend-badge-up" : trend < 0 ? "trend-badge-down" : "bg-slate-100/80 text-slate-500"
+                }`}>
+                    {trend > 0 ? "+" : ""}{trend}%
+                </span>
+            )}
+        </div>
+        <p className="mb-1 text-sm font-medium text-slate-500">{title}</p>
+        <div className="text-2xl font-bold tracking-tight text-slate-900">{value}</div>
+        {subtitle && <p className="mt-1 text-xs text-slate-400">{subtitle}</p>}
+    </div>
+);
+
+const SetupStep = ({ title, description, icon: Icon, href, status, buttonText }: {
     title: string;
     description: string;
-    icon: string;
+    icon: React.ComponentType<{ className?: string }>;
     href?: string;
-    gradient: string;
-    status?: 'pending' | 'complete' | 'in-progress';
-    buttonText?: string;
+    status: 'pending' | 'complete' | 'in-progress';
+    buttonText: string;
 }) => {
-    const getStatusIcon = () => {
-        switch (status) {
-            case 'complete':
-                return <CheckCircle className="w-5 h-5 text-green-500" />;
-            case 'in-progress':
-                return <Clock className="w-5 h-5 text-yellow-500" />;
-            default:
-                return <AlertCircle className="w-5 h-5 text-gray-400" />;
-        }
-    };
+    const statusIcon = status === 'complete'
+        ? <CheckCircle className="h-5 w-5 text-emerald-500" />
+        : status === 'in-progress'
+        ? <Clock className="h-5 w-5 text-amber-500" />
+        : <AlertCircle className="h-5 w-5 text-slate-300" />;
 
     const content = (
-        <div className="group bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/50 hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4">
-                {getStatusIcon()}
+        <div className="glass-card rounded-2xl p-5 transition-all hover:shadow-lg hover:border-white/80">
+            <div className="mb-3 flex items-center justify-between">
+                <div className={iconBadge.sm}>
+                    <Icon className="h-4 w-4" />
+                </div>
+                {statusIcon}
             </div>
-
-            <div className="text-5xl mb-6">{icon}</div>
-
-            <h3 className="text-2xl font-bold text-gray-900 mb-4 leading-tight">{title}</h3>
-            <p className="text-gray-600 mb-8 leading-relaxed text-lg">{description}</p>
-
-            <div className={`inline-flex items-center space-x-2 bg-gradient-to-r ${gradient} text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold group-hover:shadow-lg`}>
+            <h3 className="mb-1.5 text-base font-semibold text-slate-900">{title}</h3>
+            <p className="mb-4 text-sm leading-relaxed text-slate-500">{description}</p>
+            <div className={`${buttons.primary} w-fit text-xs`}>
                 <span>{buttonText}</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                <ArrowRight className="h-3.5 w-3.5" />
             </div>
         </div>
     );
@@ -118,86 +133,19 @@ const ActionCard = ({
     return href ? <Link href={href}>{content}</Link> : content;
 };
 
-const OnboardingActionCard = ({ onboardingStatus }) => {
-    const getStatus = () => {
-        if (onboardingStatus.loading) return 'pending';
-        if (onboardingStatus.isCompleted) return 'complete';
-        if (onboardingStatus.currentStep > 0) return 'in-progress';
-        return 'pending';
-    };
-
-    const getTitle = () => {
-        if (onboardingStatus.isCompleted) return 'Your Profile';
-        if (onboardingStatus.currentStep > 0) return 'Continue Your Profile';
-        return 'Complete Your Profile';
-    };
-
-    const getButtonText = () => {
-        if (onboardingStatus.loading) return 'Loading...';
-        if (onboardingStatus.isCompleted) return 'Edit Profile';
-        if (onboardingStatus.currentStep > 0) return 'Continue Profile';
-        return 'Start Profile';
-    };
-
-    const getDescription = () => {
-        if (onboardingStatus.isCompleted) {
-            return `Profile complete! ${onboardingStatus.profileCompleteness}% of information filled out. You can update your preferences anytime.`;
-        }
-        if (onboardingStatus.currentStep > 0) {
-            return `Continue where you left off (Step ${onboardingStatus.currentStep} of 4).`;
-        }
-        return "Tell us about your financial goals, interests, and lifestyle to get personalized AI recommendations.";
-    };
-
-    const getIcon = () => {
-        if (onboardingStatus.isCompleted) return '✅';
-        if (onboardingStatus.currentStep > 0) return '⏳';
-        return '👤';
-    };
-
-    return (
-        <ActionCard
-            title={getTitle()}
-            description={getDescription()}
-            icon={getIcon()}
-            href="/onboarding"
-            gradient="from-indigo-500 to-purple-600"
-            status={getStatus()}
-            buttonText={getButtonText()}
-        />
-    );
-};
-
-const QuickActionCard = ({ title, description, href, gradient, icon: Icon }: {
-    title: string;
-    description: string;
-    href: string;
-    gradient: string;
-    icon: React.ComponentType<any>;
-}) => (
-    <Link href={href} className="group">
-        <div className={`bg-gradient-to-r ${gradient} p-8 rounded-3xl text-white hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02] relative overflow-hidden`}>
-            <div className="absolute -top-4 -right-4 opacity-20">
-                <Icon className="w-32 h-32" />
-            </div>
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                    <Icon className="w-8 h-8" />
-                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-300" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">{title}</h3>
-                <p className="text-white/90 leading-relaxed">{description}</p>
-            </div>
-        </div>
-    </Link>
-);
-
 export default function DashboardClient({ user }: DashboardClientProps) {
     const [stats, setStats] = useState<Stats>({
         accountsConnected: 0,
         transactionsTracked: 0,
         totalBalance: 0,
-        monthlyExpenses: 0
+        monthlyExpenses: 0,
+        monthlyIncome: 0,
+        netCashFlow: 0,
+        savingsRate: null,
+        avgDailySpend: 0,
+        topCategory: null,
+        topCategoryAmount: 0,
+        hasRecentActivity: false,
     });
 
     const [onboardingStatus, setOnboardingStatus] = useState({
@@ -206,20 +154,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         profileCompleteness: 0,
         loading: true
     });
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            setMousePos({ x: e.clientX, y: e.clientY });
-        };
+    const [sectionsOpen, setSectionsOpen] = useState({
+        overview: true,
+        accounts: true,
+        history: true,
+    });
 
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    const toggleSection = (key: keyof typeof sectionsOpen) =>
+        setSectionsOpen(prev => ({ ...prev, [key]: !prev[key] }));
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
+    useEffect(() => { fetchStats(); }, []);
 
     useEffect(() => {
         const fetchOnboardingStatus = async () => {
@@ -227,10 +172,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 const response = await fetch('/api/onboarding/status');
                 if (response.ok) {
                     const data = await response.json();
-                    setOnboardingStatus({
-                        ...data,
-                        loading: false
-                    });
+                    setOnboardingStatus({ ...data, loading: false });
                 } else {
                     setOnboardingStatus(prev => ({ ...prev, loading: false }));
                 }
@@ -239,42 +181,31 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 setOnboardingStatus(prev => ({ ...prev, loading: false }));
             }
         };
-
         fetchOnboardingStatus();
     }, []);
 
     const fetchStats = async () => {
         try {
-            const [accountsRes, transactionsRes] = await Promise.all([
-                fetch('/api/bank-accounts'),
-                fetch('/api/transactions')
-            ]);
+            const response = await fetch("/api/dashboard/stats");
+            if (!response.ok) return;
 
-            const accountsData = await accountsRes.json();
-            const transactionsData = await transactionsRes.json();
-
-            const accounts = accountsData.accounts || [];
-            const transactions = transactionsData.transactions || [];
-
-            // Calculate stats
-            const totalBalance = accounts.reduce((sum: number, acc: any) => sum + acc.currentBalance, 0);
-
-            // Monthly expenses (last 30 days)
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const monthlyExpenses = transactions
-                .filter((t: any) => new Date(t.date) >= thirtyDaysAgo && t.amount < 0)
-                .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
+            const data = await response.json();
 
             setStats({
-                accountsConnected: accounts.length,
-                transactionsTracked: transactions.length,
-                totalBalance,
-                monthlyExpenses
+                accountsConnected: data.accountsConnected ?? 0,
+                transactionsTracked: data.transactionsTracked ?? 0,
+                totalBalance: data.totalBalance ?? 0,
+                monthlyExpenses: data.monthlyExpenses ?? 0,
+                monthlyIncome: data.monthlyIncome ?? 0,
+                netCashFlow: data.netCashFlow ?? 0,
+                savingsRate: data.savingsRate ?? null,
+                avgDailySpend: data.avgDailySpend ?? 0,
+                topCategory: data.topCategory ?? null,
+                topCategoryAmount: data.topCategoryAmount ?? 0,
+                hasRecentActivity: data.hasRecentActivity ?? false,
             });
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            console.error("Error fetching stats:", error);
         }
     };
 
@@ -282,14 +213,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
         const [showSuccess, setShowSuccess] = useState(false);
 
         useEffect(() => {
-            // Check if user just completed onboarding
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('onboarding') === 'complete') {
                 setShowSuccess(true);
-                // Clean up URL without refreshing
                 window.history.replaceState({}, document.title, window.location.pathname);
-
-                // Auto-hide after 5 seconds
                 setTimeout(() => setShowSuccess(false), 5000);
             }
         }, []);
@@ -303,29 +230,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
                 <div className="flex-1">
                     <p className="font-bold text-lg">Profile Complete!</p>
-                    <p className="text-sm text-green-100">Your financial journey starts now 🎉</p>
+                    <p className="text-sm text-green-100">Your financial journey starts now</p>
                 </div>
-                <button
-                    onClick={() => setShowSuccess(false)}
-                    className="text-green-100 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
-                >
+                <button onClick={() => setShowSuccess(false)} className="text-green-100 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors">
                     <X className="w-5 h-5" />
                 </button>
             </div>
         );
     };
+
     const ReturningUserMessage = () => {
         const [showWelcome, setShowWelcome] = useState(false);
 
         useEffect(() => {
-            // Check if user is returning from onboarding redirect
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('returning') === 'true') {
                 setShowWelcome(true);
-                // Clean up URL without refreshing
                 window.history.replaceState({}, document.title, window.location.pathname);
-
-                // Auto-hide after 4 seconds
                 setTimeout(() => setShowWelcome(false), 4000);
             }
         }, []);
@@ -339,12 +260,9 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </div>
                 <div className="flex-1">
                     <p className="font-bold text-lg">Welcome Back!</p>
-                    <p className="text-sm text-blue-100">Your profile is all set up 👋</p>
+                    <p className="text-sm text-blue-100">Your profile is all set up</p>
                 </div>
-                <button
-                    onClick={() => setShowWelcome(false)}
-                    className="text-blue-100 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
-                >
+                <button onClick={() => setShowWelcome(false)} className="text-blue-100 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors">
                     <X className="w-5 h-5" />
                 </button>
             </div>
@@ -352,363 +270,345 @@ export default function DashboardClient({ user }: DashboardClientProps) {
     };
 
     const handlePlaidSuccess = () => {
-        // Refresh the page after successful connection
         window.location.reload();
     };
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
-
-    // Determine completion status
     const hasAccounts = stats.accountsConnected > 0;
     const hasTransactions = stats.transactionsTracked > 0;
 
+    const getOnboardingSetup = () => {
+        const status = onboardingStatus.loading ? 'pending'
+            : onboardingStatus.isCompleted ? 'complete'
+            : onboardingStatus.currentStep > 0 ? 'in-progress'
+            : 'pending';
+        const title = onboardingStatus.isCompleted ? 'Your Profile'
+            : onboardingStatus.currentStep > 0 ? 'Continue Profile'
+            : 'Complete Profile';
+        const buttonText = onboardingStatus.loading ? 'Loading...'
+            : onboardingStatus.isCompleted ? 'Edit Profile'
+            : onboardingStatus.currentStep > 0 ? 'Continue'
+            : 'Start';
+        const description = onboardingStatus.isCompleted
+            ? `Profile complete! ${onboardingStatus.profileCompleteness}% filled.`
+            : onboardingStatus.currentStep > 0
+            ? `Continue where you left off (Step ${onboardingStatus.currentStep} of 4).`
+            : "Tell us about your financial goals for personalized AI recommendations.";
+        return { status, title, buttonText, description };
+    };
+
+    const onboarding = getOnboardingSetup();
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-            {/* Subtle Pattern Overlay */}
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
-
-            {/* Ultra-Refined Navigation */}
-            <nav className="relative bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50 z-10">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex justify-between h-20">
-                        <div className="flex items-center">
-                            <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mr-5 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-110">
-                                <span className="text-lg font-black text-white">SL</span>
-                            </div>
-                            <div>
-                                <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                    SaveLoom
-                                </span>
-                                <p className="text-sm text-gray-500 font-medium">Dashboard</p>
-                            </div>
-                        </div>
-
-                        {/* Enhanced Navigation */}
-                        <div className="hidden md:flex items-center space-x-2">
-                            <Link href="/" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:bg-white/50">
-                                Setup
-                            </Link>
-                            <Link href="/analytics" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:bg-white/50">
-                                Analytics
-                            </Link>
-                            <Link href="/budgets" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:bg-white/50">
-                                Budgets
-                            </Link>
-                            <Link href="/goals" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:bg-white/50">
-                                Goals
-                            </Link>
-                            <Link href="/insights" className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center space-x-2">
-                                <Brain className="w-4 h-4" />
-                                <span>AI Insights</span>
-                            </Link>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                                <div className="text-sm font-semibold text-gray-900">Welcome back,</div>
-                                <div className="text-sm text-gray-600">{user.name}</div>
-                            </div>
-                            {user.image && (
-                                <img
-                                    src={user.image}
-                                    alt={user.name || ""}
-                                    className="h-10 w-10 rounded-2xl shadow-lg"
-                                />
-                            )}
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        // First try NextAuth signOut
-                                        await signOut({ redirect: false });
-
-                                        // Then manually redirect to clear any cached state
-                                        window.location.href = '/';
-                                    } catch (error) {
-                                        console.error('Sign out error:', error);
-
-                                        // If NextAuth fails, try manual API call
-                                        try {
-                                            const response = await fetch('/api/auth/signout', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                }
-                                            });
-
-                                            if (response.ok) {
-                                                window.location.href = '/';
-                                            } else {
-                                                throw new Error('API signout failed');
-                                            }
-                                        } catch (apiError) {
-                                            console.error('API signout error:', apiError);
-                                            // Force redirect as last resort
-                                            window.location.href = '/';
-                                        }
-                                    }
-                                }}
-                                className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-gray-100/50"
-                            >
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+        <PageShell>
+            <AppNav subtitle="Dashboard" user={user} />
             <OnboardingSuccessMessage />
             <ReturningUserMessage />
-            {/* Main Content */}
-            <main className="relative max-w-screen-2xl mx-auto p-6 lg:p-8 space-y-12">
-                {/* Hero Section */}
-                <div className="text-center mb-16">
-                    <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 px-6 py-3 rounded-full text-sm font-semibold mb-6 shadow-lg">
-                        <Sparkles className="w-4 h-4" />
-                        <span>Your Financial Journey Starts Here</span>
-                    </div>
-                    <h1 className="text-6xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6 leading-tight">
-                        Welcome to SaveLoom!
-                    </h1>
-                    <p className="text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Transform your financial future with AI-powered insights, smart budgeting, and personalized recommendations.
-                    </p>
-                </div>
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                    <StatCard
-                        title="Accounts Connected"
-                        value={stats.accountsConnected.toString()}
-                        icon={CreditCard}
-                        color="from-blue-500 to-indigo-600"
-                        trend={stats.accountsConnected > 0 ? 'up' : undefined}
-                    />
-                    <StatCard
-                        title="Transactions Tracked"
-                        value={stats.transactionsTracked.toString()}
-                        icon={BarChart3}
-                        color="from-green-500 to-emerald-600"
-                        trend={stats.transactionsTracked > 0 ? 'up' : undefined}
-                    />
-                    <StatCard
-                        title="Total Balance"
-                        value={formatCurrency(stats.totalBalance)}
-                        icon={Wallet}
-                        color="from-purple-500 to-pink-600"
-                        subtitle="Across all accounts"
-                        trend="up"
-                    />
-                    <StatCard
-                        title="Monthly Expenses"
-                        value={formatCurrency(stats.monthlyExpenses)}
-                        icon={PiggyBank}
-                        color="from-orange-500 to-red-500"
-                        subtitle="Last 30 days"
-                        trend="stable"
-                    />
-                </div>
+            <div className="sidebar-content page-container min-w-0">
+                <div className="space-y-6 p-4 sm:p-6 lg:p-8">
 
-                {/* Setup Journey */}
-                <div className="mb-16">
-                    <h2 className="text-4xl font-bold text-gray-900 mb-4 text-center">Complete Your Setup</h2>
-                    <p className="text-xl text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-                        Follow these steps to unlock the full power of SaveLoom's AI-driven financial insights.
-                    </p>
+                    {/* Stats Cards */}
+                    <section>
+                        <button type="button" onClick={() => toggleSection('overview')} className="flex w-full items-center justify-between pb-3">
+                            <h2 className="text-lg font-bold tracking-tight text-slate-900">Overview</h2>
+                            <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${sectionsOpen.overview ? "" : "-rotate-90"}`} />
+                        </button>
+                        {sectionsOpen.overview && (
+                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                <DashStatCard
+                                    title="Accounts Connected"
+                                    value={stats.accountsConnected.toString()}
+                                    icon={CreditCard}
+                                    iconBg="bg-indigo-50/80"
+                                    iconColor="text-indigo-600"
+                                    subtitle="Active bank accounts"
+                                />
+                                <DashStatCard
+                                    title="Transactions"
+                                    value={stats.transactionsTracked.toString()}
+                                    icon={BarChart3}
+                                    iconBg="bg-emerald-50/80"
+                                    iconColor="text-emerald-600"
+                                    subtitle="Tracked all time"
+                                />
+                                <DashStatCard
+                                    title="Total Balance"
+                                    value={formatCurrency(stats.totalBalance)}
+                                    icon={Wallet}
+                                    iconBg="bg-violet-50/80"
+                                    iconColor="text-violet-600"
+                                    subtitle="Across all accounts"
+                                />
+                                <DashStatCard
+                                    title="Monthly Expenses"
+                                    value={formatCurrency(stats.monthlyExpenses)}
+                                    icon={PiggyBank}
+                                    iconBg="bg-amber-50/80"
+                                    iconColor="text-amber-600"
+                                    subtitle="Last 30 days"
+                                />
+                            </div>
+                        )}
+                    </section>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <OnboardingActionCard onboardingStatus={onboardingStatus} />
-
-                        <ActionCard
-                            title="Connect Your Bank"
-                            description="Securely link your accounts for automatic transaction tracking and real-time insights."
-                            icon="🏦"
-                            gradient="from-green-500 to-emerald-600"
-                            status={hasAccounts ? 'complete' : 'pending'}
-                            buttonText={hasAccounts ? 'Add More Banks' : 'Connect Bank'}
-                        />
-
-                        <ActionCard
-                            title="Explore Analytics"
-                            description="Discover your spending patterns, trends, and AI-powered financial wellness insights."
-                            icon="📊"
-                            href="/analytics"
-                            gradient="from-purple-500 to-pink-600"
-                            status={hasTransactions ? 'complete' : 'pending'}
-                            buttonText="View Analytics"
-                        />
-                    </div>
-                </div>
-
-                {/* Plaid Connection Section */}
-
-                {!hasAccounts && (
-                    <div className="relative mb-16 overflow-hidden">
-                        {/* Background Pattern */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl"></div>
-                        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.1%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
-
-                        {/* Floating Elements */}
-                        <div className="absolute top-8 left-8 w-20 h-20 bg-white/10 rounded-full animate-pulse"></div>
-                        <div className="absolute bottom-8 right-8 w-16 h-16 bg-white/10 rounded-full animate-pulse delay-1000"></div>
-                        <div className="absolute top-1/3 right-1/4 w-8 h-8 bg-white/20 rounded-full animate-bounce delay-500"></div>
-
-                        <div className="relative p-12 lg:p-16 text-center">
-
-
-                            <div className="relative mb-12">
-                                <div className="relative inline-block">
-                                    {/* Layered Background Circles */}
-                                    <div className="absolute inset-0 w-28 h-28 bg-white/10 rounded-full animate-spin" style={{ animationDuration: '20s' }}></div>
-                                    <div className="absolute inset-2 w-24 h-24 bg-white/15 rounded-full animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }}></div>
-
-                                    {/* Main Icon Container */}
-                                    <div className="relative inline-flex items-center justify-center w-28 h-28 bg-white/20 backdrop-blur-md rounded-full shadow-2xl border border-white/30">
-                                        <div className="relative">
-                                            <div className="text-6xl animate-bounce" style={{ animationDuration: '3s' }}>🏦</div>
-                                            {/* Sparkle Effect */}
-                                            <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-yellow-300 animate-pulse" />
+                    {/* Financial Overview — purple hero card + smaller cards */}
+                    <section>
+                        <button type="button" onClick={() => toggleSection('accounts')} className="flex w-full items-center justify-between pb-3">
+                            <h2 className="text-lg font-bold tracking-tight text-slate-900">Financial Overview</h2>
+                            <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${sectionsOpen.accounts ? "" : "-rotate-90"}`} />
+                        </button>
+                        {sectionsOpen.accounts && (
+                            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-5">
+                                <div className="hero-card-purple p-5 lg:col-span-2">
+                                    <div className="relative z-10">
+                                        <div className="mb-4 flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs font-medium uppercase tracking-wide text-white/60">
+                                                    Total balance
+                                                </p>
+                                                <div className="text-2xl font-bold tracking-tight sm:text-3xl">
+                                                    {formatCurrency(stats.totalBalance)}
+                                                </div>
+                                                <p className="mt-1 text-xs text-white/60">
+                                                    Across {stats.accountsConnected} linked account
+                                                    {stats.accountsConnected === 1 ? "" : "s"}
+                                                    {stats.accountsConnected > 0 && stats.totalBalance === 0
+                                                        ? " · balances may show $0 in sandbox"
+                                                        : ""}
+                                                </p>
+                                            </div>
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                                                <DollarSign className="h-5 w-5" />
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Expanding Rings */}
-                                    <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping" style={{ animationDuration: '4s' }}></div>
-                                    <div className="absolute inset-2 rounded-full border border-white/30 animate-ping" style={{ animationDuration: '3s', animationDelay: '1s' }}></div>
+                                        <div className="mb-4 rounded-xl bg-white/10 px-3 py-2.5 backdrop-blur-sm">
+                                            <div className="flex items-center justify-between text-xs text-white/70">
+                                                <span>30-day cash flow</span>
+                                                <span
+                                                    className={`font-semibold tabular-nums ${
+                                                        stats.netCashFlow >= 0 ? "text-emerald-200" : "text-red-200"
+                                                    }`}
+                                                >
+                                                    {formatSignedCurrency(stats.netCashFlow)}
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                {(stats.monthlyIncome > 0 || stats.monthlyExpenses > 0) && (
+                                                    <>
+                                                        <div
+                                                            className="h-full bg-emerald-400/80"
+                                                            style={{
+                                                                width: `${stats.monthlyIncome + stats.monthlyExpenses > 0
+                                                                    ? Math.min(
+                                                                          (stats.monthlyIncome /
+                                                                              (stats.monthlyIncome + stats.monthlyExpenses)) *
+                                                                              100,
+                                                                          100,
+                                                                      )
+                                                                    : 0}%`,
+                                                            }}
+                                                        />
+                                                        <div
+                                                            className="h-full bg-red-400/70"
+                                                            style={{
+                                                                width: `${stats.monthlyIncome + stats.monthlyExpenses > 0
+                                                                    ? Math.min(
+                                                                          (stats.monthlyExpenses /
+                                                                              (stats.monthlyIncome + stats.monthlyExpenses)) *
+                                                                              100,
+                                                                          100,
+                                                                      )
+                                                                    : stats.monthlyExpenses > 0
+                                                                      ? 100
+                                                                      : 0}%`,
+                                                            }}
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="mt-1.5 flex justify-between text-[10px] text-white/50">
+                                                <span>Income {formatCurrency(stats.monthlyIncome)}</span>
+                                                <span>Spent {formatCurrency(stats.monthlyExpenses)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                {
+                                                    label: "Savings rate",
+                                                    value:
+                                                        stats.savingsRate !== null
+                                                            ? formatSavingsRate(stats.savingsRate)
+                                                            : stats.monthlyExpenses > 0
+                                                              ? "N/A"
+                                                              : "—",
+                                                    hint:
+                                                        stats.savingsRate !== null
+                                                            ? "Last 30 days"
+                                                            : stats.monthlyExpenses > 0
+                                                              ? "No income recorded"
+                                                              : "Last 30 days",
+                                                },
+                                                {
+                                                    label: "Avg daily spend",
+                                                    value: formatCurrency(stats.avgDailySpend),
+                                                    hint: "Per day",
+                                                },
+                                                {
+                                                    label: "Transactions",
+                                                    value: stats.transactionsTracked.toString(),
+                                                    hint: "All time",
+                                                },
+                                                {
+                                                    label: "Top category",
+                                                    value: stats.topCategory
+                                                        ? formatCurrency(stats.topCategoryAmount)
+                                                        : "—",
+                                                    hint: stats.topCategory ?? "No spending yet",
+                                                },
+                                            ].map(({ label, value, hint }) => (
+                                                <div
+                                                    key={label}
+                                                    className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm"
+                                                >
+                                                    <p className="text-[10px] font-medium uppercase tracking-wide text-white/50">
+                                                        {label}
+                                                    </p>
+                                                    <p className="text-sm font-semibold tabular-nums text-white">
+                                                        {value}
+                                                    </p>
+                                                    <p className="truncate text-[10px] text-white/45">{hint}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {!hasAccounts && (
+                                            <p className="mt-3 text-xs text-white/50">
+                                                Connect a bank to populate live balances and spending insights.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="glass-card rounded-2xl p-5 lg:col-span-3">
+                                    <div className="mb-3 flex items-center justify-between">
+                                        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                            <CreditCard className="h-4 w-4 text-indigo-600" />
+                                            Connected Accounts
+                                        </h3>
+                                        {!hasAccounts && <PlaidLink onSuccess={handlePlaidSuccess} />}
+                                    </div>
+                                    <ConnectedAccounts />
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div className="glass-card rounded-2xl p-5 lg:col-span-5">
+                                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                        <Zap className="h-4 w-4 text-indigo-600" />
+                                        Quick Actions
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                        {[
+                                            { href: "/analytics", icon: BarChart3, label: "Analytics" },
+                                            { href: "/insights", icon: Brain, label: "AI Insights" },
+                                            { href: "/budgets", icon: Target, label: "Budgets" },
+                                            { href: "/goals", icon: PiggyBank, label: "Goals" },
+                                        ].map(({ href, icon: QIcon, label }) => (
+                                            <Link
+                                                key={href}
+                                                href={href}
+                                                className="group flex flex-col items-center gap-2 rounded-xl bg-white/50 px-3 py-4 ring-1 ring-slate-200/40 transition-all hover:bg-white hover:shadow-md hover:ring-indigo-200/50"
+                                            >
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50/80 text-indigo-600 transition-colors group-hover:bg-indigo-100">
+                                                    <QIcon className="h-4 w-4" />
+                                                </div>
+                                                <span className="text-xs font-medium text-slate-700">{label}</span>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
+                        )}
+                    </section>
 
-                            {/* Main Content */}
-                            <div className="max-w-4xl mx-auto">
-                                <h3 className="text-4xl lg:text-5xl font-black mb-6 text-white leading-tight">
-                                    Ready to Connect Your Bank?
+                    {/* Setup Steps (shown if not all complete) */}
+                    {(!hasAccounts || !onboardingStatus.isCompleted) && (
+                        <section>
+                            <h2 className="pb-3 text-lg font-bold tracking-tight text-slate-900">Complete Setup</h2>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                <SetupStep
+                                    title={onboarding.title}
+                                    description={onboarding.description}
+                                    icon={onboardingStatus.isCompleted ? CheckCircle : onboardingStatus.currentStep > 0 ? Clock : User}
+                                    href="/onboarding"
+                                    status={onboarding.status as 'pending' | 'complete' | 'in-progress'}
+                                    buttonText={onboarding.buttonText}
+                                />
+                                <SetupStep
+                                    title="Connect your bank"
+                                    description="Securely link accounts for automatic transaction tracking."
+                                    icon={Building2}
+                                    status={hasAccounts ? 'complete' : 'pending'}
+                                    buttonText={hasAccounts ? 'Add more' : 'Connect'}
+                                />
+                                <SetupStep
+                                    title="Explore analytics"
+                                    description="Discover spending patterns and financial insights."
+                                    icon={BarChart3}
+                                    href="/analytics"
+                                    status={hasTransactions ? 'complete' : 'pending'}
+                                    buttonText="View"
+                                />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Bank Connection CTA */}
+                    {!hasAccounts && (
+                        <div className="hero-card-purple p-6 text-center lg:p-8">
+                            <div className="relative z-10">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+                                    <Building2 className="h-6 w-6" />
+                                </div>
+                                <h3 className="mb-2 text-lg font-semibold tracking-tight">
+                                    Connect your bank to get started
                                 </h3>
-                                <p className="text-xl lg:text-2xl text-indigo-100 mb-8 leading-relaxed max-w-3xl mx-auto">
-                                    Connect your accounts securely to start tracking transactions and get personalized insights powered by AI.
+                                <p className="mx-auto mb-5 max-w-2xl text-sm text-white/70">
+                                    Link accounts securely with Plaid to sync transactions and unlock AI insights.
                                 </p>
-
-                                {/* Features Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 max-w-4xl mx-auto">
-                                    <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all duration-300">
-                                        <div className="text-3xl mb-3">🔒</div>
-                                        <h4 className="font-bold text-white mb-2">Bank-Level Security</h4>
-                                        <p className="text-indigo-100 text-sm">256-bit encryption & read-only access</p>
-                                    </div>
-                                    <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all duration-300">
-                                        <div className="text-3xl mb-3">⚡</div>
-                                        <h4 className="font-bold text-white mb-2">Real-Time Sync</h4>
-                                        <p className="text-indigo-100 text-sm">Automatic transaction updates</p>
-                                    </div>
-                                    <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 hover:bg-white/15 transition-all duration-300">
-                                        <div className="text-3xl mb-3">🤖</div>
-                                        <h4 className="font-bold text-white mb-2">AI-Powered Insights</h4>
-                                        <p className="text-indigo-100 text-sm">Personalized recommendations</p>
-                                    </div>
-                                </div>
-
-                                {/* CTA Section */}
-                                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 max-w-2xl mx-auto mb-8">
-                                    <div className="flex flex-col items-center space-y-4">
-                                        <div className="flex items-center space-x-2 text-white/80 text-sm">
-                                            <CheckCircle className="w-4 h-4 text-green-300" />
-                                            <span>Trusted by 10,000+ banks</span>
+                                <div className="mx-auto mb-5 grid max-w-3xl grid-cols-1 gap-2 md:grid-cols-3">
+                                    {[
+                                        { icon: Shield, label: "Bank-level security" },
+                                        { icon: Zap, label: "Real-time sync" },
+                                        { icon: Brain, label: "AI-powered insights" },
+                                    ].map(({ icon: FeatureIcon, label }) => (
+                                        <div key={label} className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm text-white/80 backdrop-blur-sm">
+                                            <FeatureIcon className="h-4 w-4 text-indigo-200" />
+                                            <span>{label}</span>
                                         </div>
-                                        <div className="flex items-center space-x-2 text-white/80 text-sm">
-                                            <CheckCircle className="w-4 h-4 text-green-300" />
-                                            <span>No account passwords stored</span>
-                                        </div>
-                                        <div className="flex items-center space-x-2 text-white/80 text-sm">
-                                            <CheckCircle className="w-4 h-4 text-green-300" />
-                                            <span>Connect in under 30 seconds</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
-
-                                {/* Enhanced Plaid Link Button */}
-                                <div className="relative group">
-                                    <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
-                                    <div className="relative">
-                                        <PlaidLink
-                                            onSuccess={handlePlaidSuccess}
-                                            className="transform hover:scale-105 transition-all duration-300"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Bottom Text */}
-                                <p className="text-indigo-200 text-sm mt-6 max-w-xl mx-auto">
-                                    Powered by Plaid • Used by millions of apps •
-                                    <span className="font-semibold"> Free to connect</span>
-                                </p>
+                                <PlaidLink onSuccess={handlePlaidSuccess} />
+                                <p className="mt-6 text-sm text-white/40">Powered by Plaid · Read-only access</p>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-
-                {/* Quick Actions for Active Users */}
-                {hasTransactions && (
-                    <div className="mb-16">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4 text-center">Quick Actions</h2>
-                        <p className="text-xl text-gray-600 text-center mb-12">
-                            Jump into your financial management tools
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <QuickActionCard
-                                title="View Analytics"
-                                description="Analyze your spending patterns, trends, and financial health with beautiful charts."
-                                href="/analytics"
-                                gradient="from-blue-500 to-indigo-600"
-                                icon={BarChart3}
-                            />
-                            <QuickActionCard
-                                title="AI Insights"
-                                description="Get personalized recommendations and insights powered by Claude AI."
-                                href="/insights"
-                                gradient="from-purple-500 to-pink-600"
-                                icon={Brain}
-                            />
-                            <QuickActionCard
-                                title="Create Budget"
-                                description="Set spending limits, track progress, and achieve your financial goals."
-                                href="/budgets"
-                                gradient="from-green-500 to-emerald-600"
-                                icon={Target}
-                            />
-                            <QuickActionCard
-                                title="Set Goals"
-                                description="Plan for the future with smart savings goals and milestone tracking."
-                                href="/goals"
-                                gradient="from-orange-500 to-red-500"
-                                icon={PiggyBank}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Connected Accounts and Transactions */}
-                <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                            <CreditCard className="w-6 h-6 text-indigo-500 mr-3" />
-                            Connected Accounts
-                        </h3>
-                        <ConnectedAccounts />
-                    </div>
-
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                            <BarChart3 className="w-6 h-6 text-green-500 mr-3" />
-                            Recent Transactions
-                        </h3>
-                        <TransactionHistory />
-                    </div>
+                    {/* History / Transactions */}
+                    <section>
+                        <button type="button" onClick={() => toggleSection('history')} className="flex w-full items-center justify-between pb-3">
+                            <h2 className="text-lg font-bold tracking-tight text-slate-900">History</h2>
+                            <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${sectionsOpen.history ? "" : "-rotate-90"}`} />
+                        </button>
+                        {sectionsOpen.history && (
+                            <div className="glass-card rounded-2xl p-5">
+                                <TransactionHistory />
+                            </div>
+                        )}
+                    </section>
                 </div>
-            </main>
-        </div>
+            </div>
+        </PageShell>
     );
 }

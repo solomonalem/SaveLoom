@@ -1,5 +1,6 @@
 //src/app/api/bank-accounts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { parseMoney } from "~/lib/money";
 import { auth } from '~/server/auth';
 import { db } from '~/server/db';
 
@@ -23,8 +24,14 @@ export async function GET(req: NextRequest) {
         });
 
         return NextResponse.json({
-            accounts,
-            count: accounts.length
+            accounts: accounts.map((account) => ({
+                ...account,
+                currentBalance: parseMoney(account.currentBalance),
+                availableBalance: account.availableBalance
+                    ? parseMoney(account.availableBalance)
+                    : null,
+            })),
+            count: accounts.length,
         });
     } catch (error) {
         console.error('Error fetching bank accounts:', error);

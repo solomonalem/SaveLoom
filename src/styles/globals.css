@@ -3,6 +3,245 @@
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --max-width-page: 2000px;
+  --sidebar-width: 72px;
+  --color-brand: #4f46e5;
+  --color-brand-muted: #eef2ff;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+.page-container {
+  width: 100%;
+  max-width: var(--max-width-page);
+  margin-inline: auto;
+}
+
+/* Offset main content beside fixed sidebar — prevents horizontal scroll */
+.app-main-offset {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .app-main-offset {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
+  }
+}
+
+.app-gradient-bg {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #e0e7ff 100%);
+  position: relative;
+}
+
+.app-gradient-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+/* Fancy form inputs */
+.fancy-input {
+  width: 100%;
+  border-radius: 0.875rem;
+  border: 1.5px solid rgba(203, 213, 225, 0.5);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) inset;
+}
+
+.fancy-input::placeholder {
+  color: #94a3b8;
+}
+
+.fancy-input:hover {
+  border-color: rgba(165, 180, 252, 0.6);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.fancy-input:focus {
+  outline: none;
+  border-color: #818cf8;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0 3px rgba(129, 140, 248, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.03) inset;
+}
+
+.fancy-input-icon {
+  padding-left: 2.75rem;
+}
+
+/* Active step card ring */
+.step-card-active {
+  --ring-color: #7c3aed;
+  box-shadow:
+    0 0 0 2.5px var(--ring-color),
+    0 20px 40px -12px rgba(124, 58, 237, 0.2),
+    0 8px 16px -8px rgba(0, 0, 0, 0.08);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Sidebar navigation */
+.sidebar-nav {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+  z-index: 40;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #94a3b8;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: #6366f1;
+}
+
+.sidebar-nav-active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
+/* Horizontal top nav — icon + label beside sidebar */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.top-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.top-nav-link:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+}
+
+.top-nav-link-active {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+}
+
+/* Purple hero card */
+.hero-card-purple {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 40%, #4f46e5 100%);
+  border-radius: 1.25rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card-purple::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 30% 80%,
+    rgba(255, 255, 255, 0.12) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* Trend badge */
+.trend-badge-up {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.trend-badge-down {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Main content area beside sidebar */
+.sidebar-content {
+  padding-bottom: 5rem;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .sidebar-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
+    padding-bottom: 0;
+  }
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.compact-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.compact-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.compact-scroll::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 9999px;
 }
 
 @keyframes slide-in-right {
@@ -19,6 +258,55 @@
 
 .animate-slide-in-right {
   animation: slide-in-right 0.5s ease-out;
+}
+
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-fade-up {
+  animation: landing-fade-up 0.7s ease-out both;
+}
+
+.landing-delay-2 {
+  animation-delay: 0.15s;
+}
+
+.landing-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.landing-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.landing-orb-1 {
+  width: 280px;
+  height: 280px;
+  top: -40px;
+  right: 10%;
+  background: rgba(99, 102, 241, 0.15);
+  animation: float 8s ease-in-out infinite;
+}
+
+.landing-orb-2 {
+  width: 200px;
+  height: 200px;
+  bottom: 0;
+  left: 5%;
+  background: rgba(139, 92, 246, 0.12);
+  animation: float 10s ease-in-out infinite reverse;
 }
 
 @keyframes float {

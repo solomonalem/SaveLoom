@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar, Target, Coffee, CreditCard, Lightbulb, RefreshCw, Trash, Heart } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Calendar, Target, Coffee, CreditCard, Lightbulb, RefreshCw, Trash, Heart, Sparkles } from 'lucide-react';
 import RecommendationsDashboard from './RecommendationsDashboard';
-import FinancialHealthDashboard from './FinancialHealthDashboard'; // Import the new component
+import FinancialHealthDashboard from './FinancialHealthDashboard';
+import AppNav from './AppNav';
+import PageShell from './PageShell';
+import { useAppModal } from '~/app/_components/modal/ModalProvider';
+import { buttons, iconBadge, iconBadgeTint, layout, summaryStat, surfaces, typography } from '~/lib/design';
+import { parseApiError } from '~/lib/parse-api-error';
 
 interface AIInsight {
     id: string;
@@ -23,48 +27,48 @@ const InsightCard = ({ insight, onDelete }: { insight: AIInsight; onDelete: (id:
     const getInsightIcon = () => {
         switch (insight.type) {
             case 'spending_trend':
-                return insight.change && insight.change > 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />;
+                return insight.change && insight.change > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />;
             case 'subscription_optimization':
-                return <CreditCard className="w-6 h-6" />;
+                return <CreditCard className="h-4 w-4" />;
             case 'budget_alert':
-                return <AlertTriangle className="w-6 h-6" />;
+                return <AlertTriangle className="h-4 w-4" />;
             case 'budget_performance':
-                return <Target className="w-6 h-6" />;
+                return <Target className="h-4 w-4" />;
             case 'saving_opportunity':
-                return <Coffee className="w-6 h-6" />;
+                return <Coffee className="h-4 w-4" />;
             case 'spending_alert':
-                return <DollarSign className="w-6 h-6" />;
+                return <DollarSign className="h-4 w-4" />;
             case 'income_analysis':
-                return <Calendar className="w-6 h-6" />;
+                return <Calendar className="h-4 w-4" />;
             case 'category_analysis':
-                return <Target className="w-6 h-6" />;
+                return <Target className="h-4 w-4" />;
             default:
-                return <Lightbulb className="w-6 h-6" />;
+                return <Lightbulb className="h-4 w-4" />;
         }
     };
 
-    const getInsightColor = () => {
+    const getInsightTone = (): 'indigo' | 'emerald' | 'red' | 'amber' | 'slate' => {
         switch (insight.type) {
             case 'spending_trend':
-                return insight.change && insight.change > 0 ? 'from-red-500 to-orange-500' : 'from-green-500 to-emerald-500';
+                return insight.change && insight.change > 0 ? 'red' : 'emerald';
             case 'subscription_optimization':
-                return 'from-purple-500 to-indigo-500';
+                return 'indigo';
             case 'budget_alert':
-                return 'from-red-500 to-pink-500';
-            case 'budget_performance':
-                return 'from-green-500 to-teal-500';
-            case 'saving_opportunity':
-                return 'from-blue-500 to-cyan-500';
             case 'spending_alert':
-                return 'from-amber-500 to-orange-500';
+                return 'red';
+            case 'budget_performance':
+            case 'saving_opportunity':
+                return 'emerald';
             case 'income_analysis':
-                return 'from-indigo-500 to-purple-500';
+                return 'indigo';
             case 'category_analysis':
-                return 'from-pink-500 to-rose-500';
+                return 'amber';
             default:
-                return 'from-gray-500 to-slate-500';
+                return 'slate';
         }
     };
+
+    const tone = getInsightTone();
 
     const formatValue = (value: number | undefined, metric: string | undefined) => {
         if (value === undefined || value === null) return '';
@@ -92,47 +96,42 @@ const InsightCard = ({ insight, onDelete }: { insight: AIInsight; onDelete: (id:
     };
 
     return (
-        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] group">
-            <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-2xl bg-gradient-to-r ${getInsightColor()} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <div className="text-white">
-                        {getInsightIcon()}
-                    </div>
+        <div className={`${surfaces.cardHover} group p-4`}>
+            <div className="flex items-start gap-3">
+                <div className={iconBadgeTint(tone)}>
+                    {getInsightIcon()}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                <div className="min-w-0 flex-1">
+                    <div className="mb-1.5 flex items-start justify-between gap-2">
+                        <h3 className="text-sm font-semibold leading-tight text-slate-900">
                             {insight.title}
                         </h3>
                         {insight.value && insight.metric && (
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold bg-gradient-to-r ${getInsightColor()} text-white`}>
+                            <span className="shrink-0 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-700">
                                 {formatValue(insight.value, insight.metric)}
                             </span>
                         )}
                     </div>
 
-                    <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                    <p className="mb-2 text-xs leading-relaxed text-slate-600">
                         {insight.content}
                     </p>
-                    {/* Delete button */}
-                    <div className="flex items-center justify-end mb-2">
-                        <button
-                            onClick={() => onDelete(insight.id)}
-                            className="opacity-30 bg-gray-300 text-gray-600 group-hover:opacity-100 transition-opacity duration-200 p-2 hover:bg-red-100 rounded-lg hover:text-red-500 hover:text-red-700"
-                            title="Delete insight"
-                        >
-                            <Trash className="w-4 h-4" />
-                        </button>
-                    </div>
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="bg-gray-100 px-2 py-1 rounded-full font-medium">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="rounded bg-slate-100 px-2 py-0.5 font-medium">
                             {insight.timeframe.replace('_', ' ')}
                         </span>
-                        <span>
-                            {new Date(insight.createdAt).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span>{new Date(insight.createdAt).toLocaleDateString()}</span>
+                            <button
+                                onClick={() => onDelete(insight.id)}
+                                className="rounded p-1 text-slate-400 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                                title="Delete insight"
+                            >
+                                <Trash className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -163,9 +162,9 @@ const InsightTypeFilter = ({ types, selectedType, onTypeChange }: {
                 <button
                     key={type}
                     onClick={() => onTypeChange(type)}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${selectedType === type
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                        : 'bg-white/70 text-gray-600 hover:bg-white/90 hover:scale-105'
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${selectedType === type
+                        ? 'bg-indigo-500/[0.08] text-indigo-700'
+                        : 'text-slate-600 hover:bg-slate-100'
                         }`}
                 >
                     {typeLabels[type] || type}
@@ -175,16 +174,42 @@ const InsightTypeFilter = ({ types, selectedType, onTypeChange }: {
     );
 };
 
+interface InsightsStatus {
+    accountsConnected: number;
+    transactionCount: number;
+    hasInsights: boolean;
+    hasRecommendations: boolean;
+    fingerprintMatches: boolean;
+    generatedAt: string | null;
+    source: 'claude' | 'algorithmic' | null;
+    canGenerate: boolean;
+    blockReason: string | null;
+    needsSync: boolean;
+    aiAvailable: boolean;
+    aiForcedRemainingToday: number;
+}
+
 export default function AIInsightsDashboard() {
+    const { showAlert, showConfirm } = useAppModal();
     const [insights, setInsights] = useState<AIInsight[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState('all');
-    const [activeTab, setActiveTab] = useState('insights'); // Can be 'insights', 'recommendations', or 'health'
+    const [activeTab, setActiveTab] = useState('insights');
     const [generating, setGenerating] = useState(false);
+    const [generatingAi, setGeneratingAi] = useState(false);
+    const [status, setStatus] = useState<InsightsStatus | null>(null);
+    const [recRefreshKey, setRecRefreshKey] = useState(0);
 
     // Delete insight handler
     const handleDeleteInsight = async (insightId: string) => {
-        if (!confirm('Are you sure you want to delete this insight?')) return;
+        const confirmed = await showConfirm({
+            title: 'Delete insight',
+            message: 'Are you sure you want to delete this insight? This action cannot be undone.',
+            confirmLabel: 'Delete',
+            destructive: true,
+            variant: 'warning',
+        });
+        if (!confirmed) return;
 
         try {
             const response = await fetch(`/api/ai/insights/${insightId}`, {
@@ -192,81 +217,177 @@ export default function AIInsightsDashboard() {
             });
 
             if (response.ok) {
-                // Remove from local state
                 setInsights(prev => prev.filter(insight => insight.id !== insightId));
+                await showAlert({
+                    title: 'Insight deleted',
+                    message: 'The insight has been removed.',
+                    variant: 'success',
+                });
             } else {
-                alert('Failed to delete insight');
+                await showAlert({
+                    title: 'Delete failed',
+                    message: await parseApiError(response, 'Failed to delete insight'),
+                    variant: 'error',
+                });
             }
         } catch (error) {
             console.error('Error deleting insight:', error);
-            alert('Error deleting insight');
+            await showAlert({
+                title: 'Delete failed',
+                message: 'An unexpected error occurred while deleting the insight.',
+                variant: 'error',
+            });
         }
     };
 
-    useEffect(() => {
-        fetchInsights();
+    const fetchStatus = useCallback(async () => {
+        try {
+            const response = await fetch('/api/ai/insights/status');
+            if (response.ok) {
+                const data = await response.json();
+                setStatus(data.status ?? null);
+                return data.status as InsightsStatus | null;
+            }
+        } catch (error) {
+            console.error('Error fetching insights status:', error);
+        }
+        return null;
     }, []);
 
     const fetchInsights = async () => {
         try {
             setLoading(true);
-            console.log('🔍 Starting to fetch insights...');
-
             const response = await fetch('/api/ai/insights');
-            console.log('🔍 Response status:', response.status);
 
             if (response.ok) {
-                const data = await response.json();
-
-                // Check multiple possible response structures
-                let realInsights = [];
-
-                if (data.insights && Array.isArray(data.insights)) {
-                    realInsights = data.insights;
-                } else if (Array.isArray(data)) {
-                    realInsights = data;
-                } else if (data.data && Array.isArray(data.data)) {
-                    realInsights = data.data;
-                }
-
-                if (realInsights.length > 0) {
-                    setInsights(realInsights);
-                }
+                const data = await response.json() as { insights?: AIInsight[] };
+                setInsights(Array.isArray(data.insights) ? data.insights : []);
             } else {
-                console.error('❌ API failed with status:', response.status);
-                const errorText = await response.text();
-                console.error('❌ Error response:', errorText);
-
+                console.error('Failed to fetch insights:', response.status);
             }
         } catch (error) {
-            console.error('❌ Error fetching insights:', error);
-
+            console.error('Error fetching insights:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const generateInsights = async () => {
-        setGenerating(true);
+    const generateInsights = async (
+        options: { useAi?: boolean; force?: boolean; silent?: boolean } = {},
+    ) => {
+        const { useAi = false, force = false, silent = false } = options;
+        if (useAi) {
+            setGeneratingAi(true);
+        } else {
+            setGenerating(true);
+        }
+
         try {
             const response = await fetch('/api/ai/generate-insights', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ useAi, force }),
             });
 
+            const data = (await response.json().catch(() => ({}))) as {
+                cached?: boolean;
+                message?: string;
+                error?: string;
+                details?: string;
+            };
+
             if (response.ok) {
-                // Refresh insights after generation
                 await fetchInsights();
-                alert('🧠 New AI insights generated successfully!');
-            } else {
-                alert('❌ Failed to generate insights. Please try again.');
+                await fetchStatus();
+
+                if (!silent) {
+                    if (data.cached) {
+                        await showAlert({
+                            title: 'Already up to date',
+                            message: data.message ?? 'Your insights are current. They will refresh when your accounts or transactions change.',
+                            variant: 'info',
+                        });
+                    } else {
+                        setRecRefreshKey((key) => key + 1);
+                        await showAlert({
+                            title: useAi ? 'AI insights generated' : 'Insights updated',
+                            message: data.message ?? 'Your insights and recommendations are ready to review.',
+                            variant: 'success',
+                        });
+                    }
+                } else if (!data.cached) {
+                    setRecRefreshKey((key) => key + 1);
+                }
+            } else if (!silent) {
+                await showAlert({
+                    title: 'Generation failed',
+                    message: data.error ?? data.details ?? await parseApiError(response, 'Failed to generate insights. Please try again.'),
+                    variant: 'error',
+                });
             }
         } catch (error) {
             console.error('Error generating insights:', error);
-            alert('❌ Error generating insights. Please try again.');
+            if (!silent) {
+                await showAlert({
+                    title: 'Generation failed',
+                    message: 'An unexpected error occurred while generating insights.',
+                    variant: 'error',
+                });
+            }
         } finally {
             setGenerating(false);
+            setGeneratingAi(false);
         }
     };
+
+    useEffect(() => {
+        void (async () => {
+            const [, currentStatus] = await Promise.all([fetchInsights(), fetchStatus()]);
+
+            if (currentStatus?.canGenerate && !currentStatus.hasInsights) {
+                await generateInsights({ useAi: false, silent: true });
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+    }, []);
+
+    const getEmptyMessage = () => {
+        if (!status) {
+            return 'Loading your account status…';
+        }
+        if (status.transactionCount > 0) {
+            return `You have ${status.transactionCount} transactions and ${status.accountsConnected} linked account${status.accountsConnected === 1 ? '' : 's'}. Click Refresh insights to analyze them.`;
+        }
+        if (status.needsSync) {
+            return 'Your bank is connected but no transactions are stored yet. On the dashboard, open Transaction History and click Import to pull them from Plaid.';
+        }
+        if (status.accountsConnected === 0) {
+            return 'Connect a bank account from the dashboard to start analyzing your spending.';
+        }
+        return status.blockReason ?? 'Add transaction data to get personalized insights.';
+    };
+
+    const insightActions = (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+                onClick={() => void generateInsights({ useAi: false })}
+                disabled={generating || generatingAi || status?.canGenerate === false}
+                className={buttons.secondary}
+            >
+                <RefreshCw className="h-4 w-4" />
+                <span>{generating ? 'Refreshing...' : 'Refresh insights'}</span>
+            </button>
+            <button
+                onClick={() => void generateInsights({ useAi: true, force: true })}
+                disabled={generating || generatingAi || !status?.aiAvailable || status?.canGenerate === false}
+                title={status?.aiAvailable ? 'Uses Claude API (limited refreshes per day)' : 'Add ANTHROPIC_API_KEY to .env.local to enable Claude'}
+                className={buttons.primary}
+            >
+                <Sparkles className="h-4 w-4" />
+                <span>{generatingAi ? 'Generating...' : 'Generate with AI'}</span>
+            </button>
+        </div>
+    );
 
     const filteredInsights = selectedType === 'all'
         ? insights
@@ -279,174 +400,81 @@ export default function AIInsightsDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-                {/* Navigation */}
-                <nav className="bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50">
-                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex justify-between h-20">
-                            <div className="flex items-center">
-                                <Link href="/" className="flex items-center">
-                                    <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mr-5 shadow-2xl">
-                                        <span className="text-lg font-black text-white">SL</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                            SaveLoom
-                                        </span>
-                                        <p className="text-sm text-gray-500 font-medium">AI Insights</p>
-                                    </div>
-                                </Link>
-                            </div>
-
-                            <div className="flex items-center space-x-4">
-                                <Link
-                                    href="/"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                                >
-                                    Dashboard
-                                </Link>
-                                <Link
-                                    href="/analytics"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                                >
-                                    Analytics
-                                </Link>
-                                <Link
-                                    href="/budgets"
-                                    className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                                >
-                                    Budgets
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-
-                {/* Loading Animation */}
-                <div className="flex items-center justify-center min-h-screen">
+            <PageShell>
+                <AppNav subtitle="Insights" />
+                <div className="flex min-h-[60vh] items-center justify-center">
                     <div className="text-center">
-                        <div className="relative">
-                            <div className="w-32 h-32 border-8 border-gray-200 border-t-indigo-500 rounded-full animate-spin mb-8 mx-auto"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Brain className="w-12 h-12 text-indigo-500 animate-pulse" />
-                            </div>
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
+                            <Brain className="h-6 w-6 animate-pulse text-indigo-600" />
                         </div>
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-                            AI Analyzing Your Data
-                        </h2>
-                        <p className="text-gray-600 text-lg">Generating personalized financial insights...</p>
+                        <p className="font-medium text-slate-900">Analyzing your data</p>
+                        <p className="mt-1 text-sm text-slate-500">Generating personalized insights...</p>
                     </div>
                 </div>
-            </div>
+            </PageShell>
         );
     }
 
+    const navActions = insightActions;
+
+    const tabClass = (active: boolean) =>
+        `${buttons.ghost} ${active ? 'bg-indigo-500/[0.08] text-indigo-700 hover:bg-indigo-500/[0.08] hover:text-indigo-700' : ''}`;
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-            {/* Navigation */}
-            <nav className="relative bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50 z-10">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex justify-between h-20">
-                        <div className="flex items-center">
-                            <Link href="/" className="flex items-center">
-                                <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mr-5 shadow-2xl">
-                                    <span className="text-lg font-black text-white">SL</span>
-                                </div>
-                                <div>
-                                    <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                        SaveLoom
-                                    </span>
-                                    <p className="text-sm text-gray-500 font-medium">AI Insights</p>
-                                </div>
-                            </Link>
-                        </div>
+        <PageShell>
+            <AppNav subtitle="Insights" actions={navActions} />
 
-                        <div className="flex items-center space-x-4">
-                            <Link
-                                href="/"
-                                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                            >
-                                Dashboard
-                            </Link>
-                            <Link
-                                href="/analytics"
-                                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                            >
-                                Analytics
-                            </Link>
-                            <Link
-                                href="/budgets"
-                                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                            >
-                                Budgets
-                            </Link>
-                            <button
-                                onClick={generateInsights}
-                                disabled={generating}
-                                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-105 font-semibold flex items-center space-x-2 disabled:opacity-50"
-                            >
-                                <Brain className="w-4 h-4" />
-                                <span>{generating ? 'Generating...' : 'Generate New'}</span>
-                            </button>
+            <div className={layout.page}>
+                <div className="mb-6 text-center">
+                    <div className="mb-3 flex items-center justify-center gap-2">
+                        <div className={iconBadge.md}>
+                            <Brain className="h-5 w-5" />
                         </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/70 px-2.5 py-1 text-xs font-medium text-slate-600 backdrop-blur-sm">
+                            <Sparkles className="h-3 w-3 text-indigo-600" />
+                            {status?.source === 'claude' ? 'Powered by Claude' : 'Rule-based insights'}
+                        </span>
                     </div>
-                </div>
-            </nav>
-
-            <div className="relative max-w-7xl mx-auto p-6 lg:p-8">
-                {/* Header */}
-                <div className="text-center mb-12">
-                    <div className="flex items-center justify-center mb-6">
-                        <div className="flex items-center justify-center space-x-4 mb-6">
-                            <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl shadow-2xl">
-                                <Brain className="w-12 h-12 text-white" />
-                            </div>
-                            <div className="flex items-center space-x-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-                                <span>🤖</span>
-                                <span>Powered by Claude AI</span>
-                            </div>
-                        </div>
-                    </div>
-                    <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-                        AI Financial Insights
-                    </h1>
-                    <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                        Your personal AI financial advisor analyzes your spending patterns, identifies opportunities, and provides actionable recommendations.
+                    <h1 className={`${typography.pageTitle} mb-2`}>AI financial insights</h1>
+                    <p className={`${typography.pageSubtitle} mx-auto max-w-2xl`}>
+                        Personalized analysis of your spending patterns and actionable recommendations.
                     </p>
+                    <div className="mt-4">{insightActions}</div>
+                    {!status?.aiAvailable && (
+                        <p className="mx-auto mt-2 max-w-lg text-xs text-slate-500">
+                            Generate with AI needs a valid <code className="rounded bg-slate-100 px-1">ANTHROPIC_API_KEY</code> in <code className="rounded bg-slate-100 px-1">.env.local</code> (from console.anthropic.com, starts with <code className="rounded bg-slate-100 px-1">sk-ant-</code>).
+                        </p>
+                    )}
+                    {status && status.transactionCount > 0 && (
+                        <p className="mx-auto mt-2 text-xs text-slate-500">
+                            {status.transactionCount} transactions · {status.accountsConnected} account{status.accountsConnected === 1 ? '' : 's'}
+                            {status.generatedAt ? ` · last updated ${new Date(status.generatedAt).toLocaleDateString()}` : ''}
+                        </p>
+                    )}
                 </div>
 
-                {/* Tab Navigation - Updated with Health Tab */}
-                <div className="flex justify-center mb-8">
-                    <div className="flex items-center space-x-1 bg-white/60 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/50">
+                <div className="mb-6 flex justify-center">
+                    <div className={`${surfaces.card} inline-flex gap-1 p-1`}>
                         <button
                             onClick={() => setActiveTab('insights')}
-                            className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'insights'
-                                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg'
-                                : 'text-gray-600 hover:bg-white/50'
-                                }`}
+                            className={tabClass(activeTab === 'insights')}
                         >
-                            <Brain className="w-4 h-4" />
+                            <Brain className="h-4 w-4" />
                             <span>Insights</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('recommendations')}
-                            className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'recommendations'
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                                : 'text-gray-600 hover:bg-white/50'
-                                }`}
+                            className={tabClass(activeTab === 'recommendations')}
                         >
-                            <Target className="w-4 h-4" />
+                            <Target className="h-4 w-4" />
                             <span>Recommendations</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('health')}
-                            className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center space-x-2 ${activeTab === 'health'
-                                ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
-                                : 'text-gray-600 hover:bg-white/50'
-                                }`}
+                            className={tabClass(activeTab === 'health')}
                         >
-                            <Heart className="w-4 h-4" />
-                            <span>Health Score</span>
+                            <Heart className="h-4 w-4" />
+                            <span>Health score</span>
                         </button>
                     </div>
                 </div>
@@ -455,48 +483,32 @@ export default function AIInsightsDashboard() {
                 {activeTab === 'insights' ? (
                     <>
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                                <div className="flex items-center space-x-3 mb-4">
-                                    <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl">
-                                        <Lightbulb className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Total Insights</h3>
-                                        <p className="text-3xl font-black text-blue-600">{insights.length}</p>
-                                    </div>
+                        <div className={`${layout.gridStats} mb-6 md:grid-cols-3`}>
+                            <div className={summaryStat.card}>
+                                <div className="mb-2 flex items-center justify-between">
+                                    <p className={typography.label}>Total insights</p>
+                                    <div className={iconBadge.sm}><Lightbulb className="h-4 w-4" /></div>
                                 </div>
-                                <p className="text-sm text-gray-600">AI-generated recommendations</p>
+                                <p className={summaryStat.value}>{insights.length}</p>
+                                <p className={summaryStat.sub}>AI-generated recommendations</p>
                             </div>
-
-                            <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                                <div className="flex items-center space-x-3 mb-4">
-                                    <div className="p-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl">
-                                        <AlertTriangle className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Action Items</h3>
-                                        <p className="text-3xl font-black text-red-600">
-                                            {insights.filter(i => ['budget_alert', 'spending_alert', 'subscription_optimization'].includes(i.type)).length}
-                                        </p>
-                                    </div>
+                            <div className={summaryStat.card}>
+                                <div className="mb-2 flex items-center justify-between">
+                                    <p className={typography.label}>Action items</p>
+                                    <div className={iconBadge.danger}><AlertTriangle className="h-4 w-4" /></div>
                                 </div>
-                                <p className="text-sm text-gray-600">Require your attention</p>
+                                <p className={`${summaryStat.value} text-red-600`}>
+                                    {insights.filter(i => ['budget_alert', 'spending_alert', 'subscription_optimization'].includes(i.type)).length}
+                                </p>
+                                <p className={summaryStat.sub}>Require your attention</p>
                             </div>
-
-                            <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                                <div className="flex items-center space-x-3 mb-4">
-                                    <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl">
-                                        <DollarSign className="w-6 h-6 text-white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900">Potential Savings</h3>
-                                        <p className="text-3xl font-black text-green-600">
-                                            ${potentialSavings.toFixed(0)}
-                                        </p>
-                                    </div>
+                            <div className={summaryStat.card}>
+                                <div className="mb-2 flex items-center justify-between">
+                                    <p className={typography.label}>Potential savings</p>
+                                    <div className={iconBadge.success}><DollarSign className="h-4 w-4" /></div>
                                 </div>
-                                <p className="text-sm text-gray-600">Per month if optimized</p>
+                                <p className={`${summaryStat.value} text-emerald-600`}>${potentialSavings.toFixed(0)}</p>
+                                <p className={summaryStat.sub}>Per month if optimized</p>
                             </div>
                         </div>
 
@@ -509,21 +521,26 @@ export default function AIInsightsDashboard() {
 
                         {/* Insights Grid */}
                         {filteredInsights.length === 0 ? (
-                            <div className="text-center py-16">
-                                <div className="text-8xl mb-6">🧠</div>
-                                <h3 className="text-2xl font-bold text-gray-900 mb-4">No insights yet</h3>
-                                <p className="text-gray-600 mb-8 text-lg">
-                                    Connect your bank accounts and start tracking transactions to get personalized AI insights.
+                            <div className="py-12 text-center">
+                                <div className={`${iconBadge.sm} mx-auto mb-3 h-10 w-10`}>
+                                    <Brain className="h-5 w-5" />
+                                </div>
+                                <h3 className="mb-2 text-lg font-semibold text-slate-900">No insights yet</h3>
+                                <p className="mx-auto mb-4 max-w-md text-sm text-slate-600">
+                                    {getEmptyMessage()}
                                 </p>
-                                <button
-                                    onClick={generateInsights}
-                                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-105 font-semibold"
-                                >
-                                    Generate Your First Insights
-                                </button>
+                                {status?.canGenerate !== false && (
+                                    <button
+                                        onClick={() => void generateInsights({ useAi: false })}
+                                        className={buttons.primary}
+                                        disabled={generating}
+                                    >
+                                        {generating ? 'Generating...' : 'Refresh insights'}
+                                    </button>
+                                )}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                                 {filteredInsights.map((insight, index) => (
                                     <div key={insight.id}>
                                         <InsightCard insight={insight} onDelete={handleDeleteInsight} />
@@ -533,11 +550,15 @@ export default function AIInsightsDashboard() {
                         )}
                     </>
                 ) : activeTab === 'recommendations' ? (
-                    <RecommendationsDashboard />
+                    <RecommendationsDashboard
+                        status={status}
+                        refreshKey={recRefreshKey}
+                        onRefresh={() => void generateInsights({ useAi: false })}
+                    />
                 ) : (
                     <FinancialHealthDashboard />
                 )}
             </div>
-        </div>
+        </PageShell>
     );
 }

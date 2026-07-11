@@ -3,18 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Target, TrendingUp, AlertTriangle, CheckCircle, Settings, Calendar, DollarSign } from 'lucide-react';
-
-const categoryEmojis = {
-    'Food and Drink': '🍔',
-    'Shops': '🛍️',
-    'Transportation': '🚗',
-    'Entertainment': '🎬',
-    'Healthcare': '🏥',
-    'Travel': '✈️',
-    'Utilities': '💡',
-    'Groceries': '🛒',
-    'Other': '💰'
-};
+import AppNav from '~/app/_components/AppNav';
+import PageShell from '~/app/_components/PageShell';
+import { CategoryIcon } from '~/lib/category-icons';
+import { buttons, iconBadge, iconBadgeTint, layout, summaryStat, surfaces, typography } from '~/lib/design';
+import { useAppModal } from '~/app/_components/modal/ModalProvider';
 
 const budgetCategories = [
     'Food and Drink',
@@ -34,85 +27,88 @@ const BudgetCard = ({ budget, onEdit, onDelete }) => {
     const isOverBudget = (budget.spent || 0) > (budget.amount || 0);
     const isNearLimit = percentage >= 80 && !isOverBudget;
 
-    const getStatusColor = () => {
-        if (isOverBudget) return 'from-red-500 to-pink-500';
-        if (isNearLimit) return 'from-amber-500 to-orange-500';
-        return 'from-emerald-500 to-teal-500';
+    const getStatusBadge = () => {
+        if (isOverBudget) return iconBadgeTint('red');
+        if (isNearLimit) return iconBadgeTint('amber');
+        return iconBadgeTint('emerald');
     };
 
     const getStatusIcon = () => {
-        if (isOverBudget) return <AlertTriangle className="w-5 h-5 text-red-500" />;
-        if (isNearLimit) return <AlertTriangle className="w-5 h-5 text-amber-500" />;
-        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
+        if (isOverBudget) return <AlertTriangle className="h-4 w-4 text-red-500" />;
+        if (isNearLimit) return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+        return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+    };
+
+    const getProgressColor = () => {
+        if (isOverBudget) return 'bg-red-500';
+        if (isNearLimit) return 'bg-amber-500';
+        return 'bg-emerald-500';
     };
 
     return (
-        <div className="group bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl hover:scale-[1.02] transition-all duration-500">
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                    <div className={`p-3 rounded-2xl bg-gradient-to-br ${getStatusColor()} shadow-lg`}>
-                        <span className="text-2xl">{categoryEmojis[budget.category] || '💰'}</span>
+        <div className={`${surfaces.cardHover} group p-4`}>
+            <div className="mb-3 flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                    <div className={getStatusBadge()}>
+                        <CategoryIcon category={budget.category} className="h-4 w-4" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900">{budget.category}</h3>
-                        <p className="text-sm text-gray-600 capitalize">{budget.period} Budget</p>
+                        <h3 className="text-sm font-semibold text-slate-900">{budget.category}</h3>
+                        <p className="text-xs capitalize text-slate-500">{budget.period} budget</p>
                     </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-1.5">
                     {getStatusIcon()}
                     <button
                         onClick={() => onEdit(budget)}
-                        className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-slate-400 opacity-0 transition-opacity hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100"
                     >
-                        <Settings className="w-4 h-4 text-gray-600" />
+                        <Settings className="h-3.5 w-3.5" />
                     </button>
                 </div>
             </div>
 
-            <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-700">Spent</span>
-                    <span className={`text-lg font-bold ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`}>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Spent</span>
+                    <span className={`font-semibold tabular-nums ${isOverBudget ? 'text-red-600' : 'text-slate-900'}`}>
                         ${(budget.spent || 0).toLocaleString()}
                     </span>
                 </div>
 
-                <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-700">Budget</span>
-                    <span className="text-lg font-bold text-gray-900">${(budget.amount || 0).toLocaleString()}</span>
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Budget</span>
+                    <span className="font-semibold tabular-nums text-slate-900">${(budget.amount || 0).toLocaleString()}</span>
                 </div>
 
-                <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-gray-700">Remaining</span>
-                    <span className={`text-lg font-bold ${remaining < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Remaining</span>
+                    <span className={`font-semibold tabular-nums ${remaining < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                         ${Math.abs(remaining).toLocaleString()}
                         {remaining < 0 && ' over'}
                     </span>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="mt-4">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-gray-600">Progress</span>
-                        <span className={`text-xs font-bold ${isOverBudget ? 'text-red-600' : 'text-gray-700'}`}>
+                <div className="pt-1">
+                    <div className="mb-1 flex items-center justify-between">
+                        <span className="text-xs text-slate-500">Progress</span>
+                        <span className={`text-xs font-medium ${isOverBudget ? 'text-red-600' : 'text-slate-700'}`}>
                             {Math.min(percentage, 100).toFixed(1)}%
                         </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
-                            className={`h-full bg-gradient-to-r ${getStatusColor()} transition-all duration-1000 rounded-full`}
+                            className={`h-full ${getProgressColor()} transition-all duration-700 rounded-full`}
                             style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
                     </div>
                 </div>
 
-                {/* Period Info */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                        <span>Period: {new Date(budget.startDate).toLocaleDateString()} - {new Date(budget.endDate).toLocaleDateString()}</span>
-                        <button className='cursor-pointer hover:text-red-500 hover:shadow-xl' onClick={onDelete}>Delete</button>
-                    </div>
-
+                <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs text-slate-500">
+                    <span>
+                        {new Date(budget.startDate).toLocaleDateString()} – {new Date(budget.endDate).toLocaleDateString()}
+                    </span>
+                    <button className="text-red-500 hover:text-red-600" onClick={onDelete}>Delete</button>
                 </div>
             </div>
         </div>
@@ -167,8 +163,8 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
+            <div className="glass-card w-full max-w-md rounded-2xl p-8">
+                <h2 className={`${typography.pageTitle} mb-6`}>
                     {editingBudget ? 'Edit Budget' : 'Create New Budget'}
                 </h2>
 
@@ -178,13 +174,13 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
                         <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            className="w-full p-4 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                            className="fancy-input"
                             required
                         >
                             <option value="">Select a category</option>
                             {budgetCategories.map(category => (
                                 <option key={category} value={category}>
-                                    {categoryEmojis[category]} {category}
+                                    {category}
                                 </option>
                             ))}
                         </select>
@@ -199,7 +195,7 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                                 placeholder="Enter amount"
-                                className="w-full p-4 pl-12 border-0 rounded-2xl bg-white/70 backdrop-blur-sm shadow-lg focus:ring-2 focus:ring-indigo-500 transition-all"
+                                className="fancy-input fancy-input-icon"
                                 required
                                 min="0"
                                 step="0.01"
@@ -213,7 +209,7 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, period: 'weekly' })}
-                                className={`p-4 rounded-2xl border-2 transition-all ${formData.period === 'weekly'
+                                className={`rounded-xl border-2 p-3 transition-all ${formData.period === 'weekly'
                                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                                     : 'border-gray-300 bg-white/50 text-gray-700 hover:border-gray-400'
                                     }`}
@@ -224,7 +220,7 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, period: 'monthly' })}
-                                className={`p-4 rounded-2xl border-2 transition-all ${formData.period === 'monthly'
+                                className={`rounded-xl border-2 p-3 transition-all ${formData.period === 'monthly'
                                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                                     : 'border-gray-300 bg-white/50 text-gray-700 hover:border-gray-400'
                                     }`}
@@ -238,13 +234,13 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
                     <div className="flex space-x-3 pt-4">
                         <button
                             onClick={onClose}
-                            className="flex-1 p-4 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 transition-all font-semibold"
+                            className={`${buttons.secondary} flex-1 py-3`}
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSubmit}
-                            className="flex-1 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl hover:shadow-xl transition-all font-semibold"
+                            className={`${buttons.primary} flex-1 py-3`}
                         >
                             {editingBudget ? 'Update Budget' : 'Create Budget'}
                         </button>
@@ -256,12 +252,11 @@ const CreateBudgetModal = ({ isOpen, onClose, onSave, editingBudget }) => {
 };
 
 export default function BudgetClient() {
+    const { showAlert, showConfirm } = useAppModal();
     const [budgets, setBudgets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingBudget, setEditingBudget] = useState(undefined);
-    const [deletingBudget, setDeletingBudget] = useState(undefined);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     // 🔥 REAL API INTEGRATION - NO MORE MOCK DATA
     useEffect(() => {
@@ -324,9 +319,17 @@ export default function BudgetClient() {
                     setBudgets(budgets.map(b =>
                         b.id === editingBudget.id ? data.budget : b
                     ));
-                    alert('✅ Budget updated successfully!');
+                    await showAlert({
+                        title: 'Budget updated',
+                        message: 'Your budget has been saved successfully.',
+                        variant: 'success',
+                    });
                 } else {
-                    alert('❌ Failed to update budget: ' + data.error);
+                    await showAlert({
+                        title: 'Update failed',
+                        message: data.error ?? 'Failed to update budget',
+                        variant: 'error',
+                    });
                 }
                 setEditingBudget(undefined);
             } else {
@@ -344,15 +347,27 @@ export default function BudgetClient() {
 
                 if (response.ok && data.success) {
                     setBudgets([...budgets, data.budget]);
-                    alert('✅ Budget created successfully!');
+                    await showAlert({
+                        title: 'Budget created',
+                        message: 'Your new budget is ready to track.',
+                        variant: 'success',
+                    });
                 } else {
                     console.error('❌ API Error:', data);
-                    alert(`❌ Failed to create budget: ${data.error || data.details || 'Unknown error'}`);
+                    await showAlert({
+                        title: 'Create failed',
+                        message: data.error ?? data.details ?? 'Failed to create budget',
+                        variant: 'error',
+                    });
                 }
             }
         } catch (error) {
             console.error('❌ Error saving budget:', error);
-            alert('❌ Network error. Please try again.');
+            await showAlert({
+                title: 'Save failed',
+                message: 'A network error occurred. Please try again.',
+                variant: 'error',
+            });
         }
     };
 
@@ -363,34 +378,43 @@ export default function BudgetClient() {
     };
 
     const handleDeleteBudget = async (budget) => {
-        setDeletingBudget(budget);
-        setShowDeleteModal(true);
-    };
-
-    const confirmDeleteBudget = async () => {
-        if (!deletingBudget) return;
+        const confirmed = await showConfirm({
+            title: 'Delete budget',
+            message: `Delete your ${budget.category} budget of $${Number(budget.amount).toLocaleString()}? This cannot be undone.`,
+            confirmLabel: 'Delete',
+            destructive: true,
+            variant: 'warning',
+        });
+        if (!confirmed) return;
 
         try {
-            console.log('🗑️ Deleting budget:', deletingBudget.id);
-            const response = await fetch(`/api/budgets?id=${deletingBudget.id}`, {
+            const response = await fetch(`/api/budgets?id=${budget.id}`, {
                 method: 'DELETE',
             });
 
             const data = await response.json();
-            console.log('🗑️ Delete response:', data);
 
             if (data.success) {
-                setBudgets(budgets.filter(b => b.id !== deletingBudget.id));
-                alert('✅ Budget deleted successfully!');
+                setBudgets(budgets.filter(b => b.id !== budget.id));
+                await showAlert({
+                    title: 'Budget deleted',
+                    message: 'The budget has been removed.',
+                    variant: 'success',
+                });
             } else {
-                alert('❌ Failed to delete budget: ' + data.error);
+                await showAlert({
+                    title: 'Delete failed',
+                    message: data.error ?? 'Failed to delete budget',
+                    variant: 'error',
+                });
             }
         } catch (error) {
             console.error('❌ Error deleting budget:', error);
-            alert('❌ Network error. Please try again.');
-        } finally {
-            setDeletingBudget(undefined);
-            setShowDeleteModal(false);
+            await showAlert({
+                title: 'Delete failed',
+                message: 'A network error occurred. Please try again.',
+                variant: 'error',
+            });
         }
     };
 
@@ -406,155 +430,77 @@ export default function BudgetClient() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
-
-                <nav className="relative bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50">
-                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex justify-between h-20">
-                            <div className="flex items-center animate-pulse">
-                                <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl mr-4"></div>
-                                <div className="h-8 w-32 bg-gradient-to-r from-gray-200 to-gray-300 rounded-2xl"></div>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
-
-                <div className="flex items-center justify-center min-h-screen">
+            <PageShell>
+                <AppNav subtitle="Budgets" />
+                <div className="flex min-h-[60vh] items-center justify-center">
                     <div className="text-center">
-                        <div className="relative">
-                            <div className="w-32 h-32 border-8 border-gray-200 border-t-indigo-500 rounded-full animate-spin mb-8 mx-auto"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="text-4xl animate-pulse">🎯</div>
-                            </div>
-                        </div>
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-                            Loading Budgets
-                        </h2>
-                        <p className="text-gray-600 text-lg">Fetching your budget data...</p>
+                        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+                        <p className="font-medium text-slate-900">Loading budgets</p>
                     </div>
                 </div>
-            </div>
+            </PageShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]"></div>
+        <PageShell>
+            <AppNav subtitle="Budgets" />
 
-            {/* Navigation */}
-            <nav className="relative bg-white/80 backdrop-blur-2xl shadow-xl border-b border-white/50 z-10">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex justify-between h-20">
-                        <div className="flex items-center">
-                            <div className="h-12 w-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mr-5 shadow-2xl">
-                                <span className="text-lg font-black text-white">SL</span>
-                            </div>
-                            <div>
-                                <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                    SaveLoom
-                                </span>
-                                <p className="text-sm text-gray-500 font-medium">Budget Management</p>
-                            </div>
-                        </div>
-                        <div className="hidden md:flex items-center space-x-8">
-                            <a href="/" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/50">
-                                Setup
-                            </a>
-                            <a href="/analytics" className="text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/50">
-                                Analytics
-                            </a>
-                            <a href="/budgets" className="text-indigo-600 px-4 py-2 rounded-xl text-sm font-medium bg-indigo-50 shadow-sm">
-                                Budgets
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <div className="relative max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
-                {/* Header Section */}
+            <div className={layout.page}>
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                    <div className="mb-6 md:mb-0">
-                        <h1 className="text-5xl font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                            Budget Management
+                    <div className="mb-4 md:mb-0">
+                        <h1 className={`${typography.pageTitle} mb-1`}>
+                            Budget management
                         </h1>
-                        <p className="text-gray-600 text-xl">Take control of your spending with smart budgets</p>
+                        <p className={typography.pageSubtitle}>Take control of your spending with smart budgets</p>
                     </div>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl hover:shadow-indigo-500/25 transition-all duration-300 hover:scale-105 font-semibold flex items-center space-x-2"
+                        className={buttons.primary}
                     >
-                        <PlusCircle className="w-5 h-5" />
-                        <span>Create Budget</span>
+                        <PlusCircle className="h-4 w-4" />
+                        <span>Create budget</span>
                     </button>
                 </div>
 
-                {/* Overview Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Total Budget</p>
-                                <p className="text-4xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                    ${totalBudget.toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
-                                <Target className="w-8 h-8 text-white" />
-                            </div>
+                <div className={layout.gridStats}>
+                    <div className={summaryStat.card}>
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className={typography.label}>Total budget</p>
+                            <div className={iconBadge.sm}><Target className="h-4 w-4" /></div>
                         </div>
+                        <p className={summaryStat.value}>${totalBudget.toLocaleString()}</p>
                     </div>
-
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Total Spent</p>
-                                <p className="text-4xl font-black text-red-600">
-                                    ${totalSpent.toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-red-500 to-pink-600 shadow-lg">
-                                <TrendingUp className="w-8 h-8 text-white" />
-                            </div>
+                    <div className={summaryStat.card}>
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className={typography.label}>Total spent</p>
+                            <div className={iconBadge.danger}><TrendingUp className="h-4 w-4" /></div>
                         </div>
+                        <p className={`${summaryStat.value} text-red-600`}>${totalSpent.toLocaleString()}</p>
                     </div>
-
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Remaining</p>
-                                <p className={`text-4xl font-black ${totalRemaining >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                    ${Math.abs(totalRemaining).toLocaleString()}
-                                </p>
-                            </div>
-                            <div className={`p-4 rounded-2xl bg-gradient-to-br ${totalRemaining >= 0 ? 'from-emerald-500 to-teal-600' : 'from-red-500 to-pink-600'} shadow-lg`}>
-                                <DollarSign className="w-8 h-8 text-white" />
+                    <div className={summaryStat.card}>
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className={typography.label}>Remaining</p>
+                            <div className={totalRemaining >= 0 ? iconBadge.success : iconBadge.danger}>
+                                <DollarSign className="h-4 w-4" />
                             </div>
                         </div>
+                        <p className={`${summaryStat.value} ${totalRemaining >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            ${Math.abs(totalRemaining).toLocaleString()}
+                        </p>
                     </div>
-
-                    <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-xl border border-white/40 hover:shadow-2xl transition-all duration-500">
-                        <div className="flex items-center justify-between mb-4">
-                            <div>
-                                <p className="text-sm font-bold text-gray-600 uppercase tracking-wider mb-2">Alerts</p>
-                                <p className="text-4xl font-black text-amber-600">
-                                    {overBudgetCount + nearLimitCount}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                    {overBudgetCount} over, {nearLimitCount} near limit
-                                </p>
-                            </div>
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg">
-                                <AlertTriangle className="w-8 h-8 text-white" />
-                            </div>
+                    <div className={summaryStat.card}>
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className={typography.label}>Alerts</p>
+                            <div className={iconBadge.warning}><AlertTriangle className="h-4 w-4" /></div>
                         </div>
+                        <p className={`${summaryStat.value} text-amber-600`}>{overBudgetCount + nearLimitCount}</p>
+                        <p className={summaryStat.sub}>{overBudgetCount} over · {nearLimitCount} near limit</p>
                     </div>
                 </div>
 
-                {/* Budget Cards Grid */}
                 {budgets.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className={layout.gridCards}>
                         {budgets.map((budget) => (
                             <BudgetCard
                                 key={budget.id}
@@ -565,15 +511,14 @@ export default function BudgetClient() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-16">
-                        <div className="text-8xl mb-6">🎯</div>
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">No Budgets Yet</h2>
-                        <p className="text-gray-600 text-lg mb-8">Create your first budget to start tracking your spending</p>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:shadow-xl transition-all font-semibold"
-                        >
-                            Create Your First Budget
+                    <div className="py-12 text-center">
+                        <div className={`${iconBadge.sm} mx-auto mb-3 h-10 w-10`}>
+                            <Target className="h-5 w-5" />
+                        </div>
+                        <h2 className="mb-2 text-lg font-semibold text-slate-900">No budgets yet</h2>
+                        <p className="mb-4 text-sm text-slate-600">Create your first budget to start tracking spending</p>
+                        <button onClick={() => setShowCreateModal(true)} className={buttons.primary}>
+                            Create your first budget
                         </button>
                     </div>
                 )}
@@ -589,57 +534,6 @@ export default function BudgetClient() {
                 onSave={handleSaveBudget}
                 editingBudget={editingBudget}
             />
-
-            {/* Delete Confirmation Modal */}
-            <DeleteConfirmationModal
-                isOpen={showDeleteModal}
-                onClose={() => {
-                    setShowDeleteModal(false);
-                    setDeletingBudget(undefined);
-                }}
-                onConfirm={confirmDeleteBudget}
-                budget={deletingBudget}
-            />
-        </div>
-    );
-};
-
-// Enhanced Delete Confirmation Modal Component
-const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, budget }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50">
-                <div className="text-center">
-                    <div className="text-6xl mb-4">🗑️</div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                        Delete Budget?
-                    </h2>
-                    <p className="text-gray-600 mb-6">
-                        Are you sure you want to delete your <strong>{budget?.category}</strong> budget
-                        of <strong>${budget?.amount?.toLocaleString()}</strong>?
-                    </p>
-                    <p className="text-sm text-gray-500 mb-8">
-                        This action cannot be undone, but you can always create a new budget for this category.
-                    </p>
-                </div>
-
-                <div className="flex space-x-3">
-                    <button
-                        onClick={onClose}
-                        className="flex-1 p-4 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-50 transition-all font-semibold"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 p-4 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-2xl hover:shadow-xl transition-all font-semibold"
-                    >
-                        Delete Budget
-                    </button>
-                </div>
-            </div>
-        </div>
+        </PageShell>
     );
 };

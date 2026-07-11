@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, DollarSign, Zap, ArrowRight, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, DollarSign, Zap, ArrowRight, Target, TrendingUp, AlertCircle, Sparkles } from 'lucide-react';
+import { buttons, iconBadge, iconBadgeTint, summaryStat, surfaces, typography } from '~/lib/design';
 
 interface Recommendation {
     id: string;
@@ -70,29 +71,35 @@ const RecommendationCard = ({ recommendation, onActionToggle, onMarkRead }: {
         }
     }, [recommendation.id, recommendation.isRead, onMarkRead]);
 
+    const getPriorityTone = (): 'indigo' | 'emerald' | 'red' | 'amber' | 'slate' => {
+        switch (recommendation.priority) {
+            case 'urgent': return 'red';
+            case 'high': return 'amber';
+            case 'medium': return 'indigo';
+            case 'low': return 'emerald';
+            default: return 'slate';
+        }
+    };
+
     return (
-        <div className={`bg-white/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 hover:shadow-2xl transition-all duration-500 hover:scale-[1.01] group ${recommendation.isActioned ? 'opacity-75' : ''
-            }`}>
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                    <div className={`p-3 rounded-2xl bg-gradient-to-r ${getPriorityColor()} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                        <div className="text-white">
-                            {getPriorityIcon()}
-                        </div>
+        <div className={`${surfaces.cardHover} group p-4 ${recommendation.isActioned ? 'opacity-75' : ''}`}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-start gap-2.5">
+                    <div className={iconBadgeTint(getPriorityTone())}>
+                        {getPriorityIcon()}
                     </div>
-                    <div className="flex-1">
-                        <h3 className={`text-lg font-bold leading-tight ${recommendation.isActioned ? 'line-through text-gray-500' : 'text-gray-900'
-                            }`}>
+                    <div className="min-w-0 flex-1">
+                        <h3 className={`text-sm font-semibold leading-tight ${recommendation.isActioned ? 'line-through text-slate-500' : 'text-slate-900'}`}>
                             {recommendation.title}
                         </h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${getPriorityColor()} text-white`}>
-                                {recommendation.priority.toUpperCase()}
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-600">
+                                {recommendation.priority}
                             </span>
                             {getEffortBadge()}
                             {recommendation.metadata?.timeframe && (
-                                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium flex items-center">
-                                    <Clock className="w-3 h-3 mr-1" />
+                                <span className="flex items-center rounded bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                                    <Clock className="mr-1 h-3 w-3" />
                                     {recommendation.metadata.timeframe}
                                 </span>
                             )}
@@ -100,38 +107,38 @@ const RecommendationCard = ({ recommendation, onActionToggle, onMarkRead }: {
                     </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex shrink-0 items-center gap-2">
                     {recommendation.potentialSavings && (
                         <div className="text-right">
-                            <div className="text-sm text-gray-500">Potential Savings</div>
-                            <div className="text-lg font-bold text-green-600">
-                                ${Number(recommendation.potentialSavings || 0).toFixed(2)}/mo
+                            <div className="text-[10px] text-slate-500">Savings</div>
+                            <div className="text-sm font-semibold tabular-nums text-emerald-600">
+                                ${Number(recommendation.potentialSavings || 0).toFixed(0)}/mo
                             </div>
                         </div>
                     )}
                     <button
                         onClick={() => onActionToggle(recommendation.id)}
-                        className={`p-2 rounded-2xl transition-all duration-300 ${recommendation.isActioned
-                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                            : 'bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-600'
+                        className={`rounded-md p-1.5 transition-colors ${recommendation.isActioned
+                            ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                            : 'bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'
                             }`}
                         title={recommendation.isActioned ? 'Mark as not completed' : 'Mark as completed'}
                     >
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="h-4 w-4" />
                     </button>
                 </div>
             </div>
 
-            <p className="text-gray-600 text-sm leading-relaxed mb-4">
+            <p className="mb-3 text-xs leading-relaxed text-slate-600">
                 {recommendation.description}
             </p>
 
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl mb-4">
-                <div className="flex items-center space-x-2 mb-2">
-                    <DollarSign className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-semibold text-indigo-800">Expected Impact</span>
+            <div className={`${surfaces.inset} mb-3 p-3`}>
+                <div className="mb-1 flex items-center gap-1.5">
+                    <DollarSign className="h-3.5 w-3.5 text-indigo-600" />
+                    <span className="text-xs font-medium text-slate-700">Expected impact</span>
                 </div>
-                <p className="text-sm text-indigo-700">{recommendation.impact}</p>
+                <p className="text-xs text-slate-600">{recommendation.impact}</p>
             </div>
 
             {recommendation.metadata?.steps && recommendation.metadata.steps.length > 0 && (
@@ -158,8 +165,9 @@ const RecommendationCard = ({ recommendation, onActionToggle, onMarkRead }: {
                     <span>Confidence: {(recommendation.confidence * 100).toFixed(0)}%</span>
                     <span>{new Date(recommendation.createdAt).toLocaleDateString()}</span>
                     {recommendation.metadata?.claudeGenerated && (
-                        <span className="bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-medium">
-                            🤖 AI Generated
+                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">
+                            <Sparkles className="h-3 w-3" />
+                            AI generated
                         </span>
                     )}
                 </div>
@@ -185,9 +193,9 @@ const RecommendationFilters = ({ selectedPriority, onPriorityChange, selectedSta
                     <button
                         key={priority}
                         onClick={() => onPriorityChange(priority)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${selectedPriority === priority
-                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                            : 'bg-white/70 text-gray-600 hover:bg-white/90 hover:scale-105'
+                        className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-all ${selectedPriority === priority
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'bg-white/60 text-slate-600 hover:bg-white/90'
                             }`}
                     >
                         {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -205,9 +213,9 @@ const RecommendationFilters = ({ selectedPriority, onPriorityChange, selectedSta
                     <button
                         key={status.key}
                         onClick={() => onStatusChange(status.key)}
-                        className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${selectedStatus === status.key
-                            ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg scale-105'
-                            : 'bg-white/70 text-gray-600 hover:bg-white/90 hover:scale-105'
+                        className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-all ${selectedStatus === status.key
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white/60 text-slate-600 hover:bg-white/90'
                             }`}
                     >
                         {status.label}
@@ -218,7 +226,22 @@ const RecommendationFilters = ({ selectedPriority, onPriorityChange, selectedSta
     );
 };
 
-export default function RecommendationsDashboard() {
+export default function RecommendationsDashboard({
+    status,
+    onRefresh,
+    refreshKey = 0,
+}: {
+    status?: {
+        accountsConnected: number;
+        transactionCount: number;
+        canGenerate: boolean;
+        needsSync: boolean;
+        blockReason: string | null;
+        hasInsights: boolean;
+    } | null;
+    onRefresh?: () => void | Promise<void>;
+    refreshKey?: number;
+}) {
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPriority, setSelectedPriority] = useState('all');
@@ -227,7 +250,7 @@ export default function RecommendationsDashboard() {
 
     useEffect(() => {
         fetchRecommendations();
-    }, []);
+    }, [refreshKey]);
 
     const fetchRecommendations = async () => {
         try {
@@ -325,83 +348,52 @@ export default function RecommendationsDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-                <div className="flex items-center justify-center min-h-screen">
-                    <div className="text-center">
-                        <div className="relative">
-                            <div className="w-32 h-32 border-8 border-gray-200 border-t-indigo-500 rounded-full animate-spin mb-8 mx-auto"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <Target className="w-12 h-12 text-indigo-500 animate-pulse" />
-                            </div>
-                        </div>
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-                            Loading Recommendations
-                        </h2>
-                        <p className="text-gray-600 text-lg">Preparing your personalized action plan...</p>
-                    </div>
+            <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600" />
+                    <p className="font-medium text-slate-900">Loading recommendations</p>
+                    <p className="mt-1 text-sm text-slate-500">Preparing your personalized action plan...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8">
-            {/* Header */}
+        <div className="space-y-6">
             <div className="text-center">
-                <div className="flex items-center justify-center mb-6">
-                    <div className="p-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-3xl shadow-2xl">
-                        <Target className="w-12 h-12 text-white" />
-                    </div>
+                <div className={`${iconBadge.success} mx-auto mb-3 h-10 w-10`}>
+                    <Target className="h-5 w-5" />
                 </div>
-                <h1 className="text-4xl font-black bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4">
-                    Smart Recommendations
-                </h1>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                <h1 className={`${typography.pageTitle} mb-2`}>Smart recommendations</h1>
+                <p className={`${typography.pageSubtitle} mx-auto max-w-2xl`}>
                     Personalized action items to optimize your finances and reach your goals faster.
                 </p>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl">
-                            <Target className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900">Active Recommendations</h3>
-                            <p className="text-3xl font-black text-blue-600">{recommendations.length}</p>
-                        </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className={summaryStat.card}>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className={typography.label}>Active</p>
+                        <div className={iconBadge.sm}><Target className="h-4 w-4" /></div>
                     </div>
-                    <p className="text-sm text-gray-600">Personalized action items</p>
+                    <p className={summaryStat.value}>{recommendations.length}</p>
+                    <p className={summaryStat.sub}>Personalized action items</p>
                 </div>
-
-                <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl">
-                            <CheckCircle className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900">Completed Actions</h3>
-                            <p className="text-3xl font-black text-green-600">{completedActions}</p>
-                        </div>
+                <div className={summaryStat.card}>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className={typography.label}>Completed</p>
+                        <div className={iconBadge.success}><CheckCircle className="h-4 w-4" /></div>
                     </div>
-                    <p className="text-sm text-gray-600">Steps you've taken</p>
+                    <p className={`${summaryStat.value} text-emerald-600`}>{completedActions}</p>
+                    <p className={summaryStat.sub}>Steps you&apos;ve taken</p>
                 </div>
-
-                <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/40">
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl">
-                            <DollarSign className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900">Potential Savings</h3>
-                            <p className="text-3xl font-black text-purple-600">
-                                ${(totalPotentialSavings || 0).toFixed(0)}
-                            </p>
-                        </div>
+                <div className={summaryStat.card}>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className={typography.label}>Potential savings</p>
+                        <div className={iconBadge.sm}><DollarSign className="h-4 w-4" /></div>
                     </div>
-                    <p className="text-sm text-gray-600">Per month if all completed</p>
+                    <p className={`${summaryStat.value} text-emerald-600`}>${totalPotentialSavings.toFixed(0)}</p>
+                    <p className={summaryStat.sub}>Per month if optimized</p>
                 </div>
             </div>
 
@@ -415,15 +407,30 @@ export default function RecommendationsDashboard() {
 
             {/* Recommendations Grid */}
             {filteredRecommendations.length === 0 ? (
-                <div className="text-center py-16">
-                    <div className="text-8xl mb-6">🎯</div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">No recommendations yet</h3>
-                    <p className="text-gray-600 mb-8 text-lg">
-                        Connect your accounts and generate AI insights to get personalized recommendations.
+                <div className="py-12 text-center">
+                    <div className={`${iconBadge.sm} mx-auto mb-3 h-10 w-10`}>
+                        <Target className="h-5 w-5" />
+                    </div>
+                    <h3 className="mb-2 text-lg font-semibold text-slate-900">No recommendations yet</h3>
+                    <p className="mx-auto mb-4 max-w-md text-sm text-slate-600">
+                        {status?.transactionCount && status.transactionCount > 0
+                            ? `You have ${status.transactionCount} transactions ready. Refresh insights to generate recommendations.`
+                            : status?.needsSync
+                                ? 'Your bank is connected but no transactions are stored yet. On the dashboard, use Import in Transaction History to pull them from Plaid.'
+                                : status?.accountsConnected === 0
+                                    ? 'Connect a bank account from the dashboard to get personalized recommendations.'
+                                    : status?.canGenerate
+                                        ? 'Refresh insights to generate recommendations from your transaction data.'
+                                        : (status?.blockReason ?? 'Add transaction data to unlock recommendations.')}
                     </p>
+                    {status?.canGenerate && onRefresh && (
+                        <button onClick={onRefresh} className={buttons.primary}>
+                            Refresh insights
+                        </button>
+                    )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {filteredRecommendations.map((recommendation, index) => (
                         <div
                             key={recommendation.id}

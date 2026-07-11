@@ -1,0 +1,15 @@
+---
+description: SaveLoom UI and component patterns
+globs: src/app/**/*.tsx,src/styles/**/*.css
+alwaysApply: false
+---
+
+# SaveLoom UI
+
+- Import design tokens from `~/lib/design` — avoid ad-hoc `shadow-xl`, `rounded-3xl`, gradient icon boxes
+- Icon badges: ghost tints (`iconBadge.sm`, `iconBadgeTint('emerald'|'red'|...)`)
+- Lists: `listRow.item` + `surfaces.list` + `compact-scroll` for dense transaction/account rows
+- Merchant/category icons: `MerchantIcon`, `CategoryIcon` — not raw emoji
+- Page width: `page-container` / `layout.page` (max 2000px)
+- Glass surfaces: `glass-card`, `hero-card-purple` in globals.css
+- Shared shell: `PageShell`, `AppNav`, `EmptyState`

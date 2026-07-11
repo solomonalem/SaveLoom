@@ -1,0 +1,24 @@
+{
+  "user": {
+    "id": "cmqiuu5zf0000ts7yjlp7lv3b",
+    "email": "loomsave@gmail.com",
+    "name": "Save Loom",
+    "image": "https://lh3.googleusercontent.com/a/ACg8ocIeXbhRH1cE3vvyJ28j28EI7IO4SPptrj5PI4QUObWZ0hNzAQ=s96-c",
+    "onboardingCompleted": false,
+    "hasConnectedBank": true,
+    "riskTolerance": "moderate"
+  },
+  "stats": {
+    "accountsConnected": 8,
+    "transactionsTracked": 42,
+    "totalBalance": 151266.8,
+    "monthlyIncome": 504.22,
+    "monthlyExpenses": 214.63,
+    "netCashFlow": 289.59000000000003,
+    "savingsRate": 57.43326325810163,
+    "avgDailySpend": 7.154333333333333,
+    "topCategory": "Other",
+    "topCategoryAmount": 214.63,
+    "hasRecentActivity": true
+  }
+}
