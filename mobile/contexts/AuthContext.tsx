@@ -225,3 +225,11 @@ export function getDevSnapshotInsights() {
 export function getDevSnapshotRecommendations() {
   return (devSnapshot as { recommendations?: import("@/lib/api").Recommendation[] }).recommendations ?? [];
 }
+
+export function getDevSnapshotBudgets() {
+  return (devSnapshot as { budgets?: import("@/lib/api").Budget[] }).budgets ?? [];
+}
+
+export function getDevSnapshotGoals() {
+  return (devSnapshot as { goals?: import("@/lib/api").FinancialGoal[] }).goals ?? [];
+}

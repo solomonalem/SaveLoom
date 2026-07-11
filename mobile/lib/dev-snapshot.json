@@ -121,5 +121,33 @@
       "isActioned": false,
       "createdAt": "2026-07-01T10:00:00.000Z"
     }
+  ],
+  "budgets": [
+    {
+      "id": "snapshot-budget-1",
+      "category": "food_and_drink",
+      "amount": 300,
+      "spent": 214.63,
+      "remaining": 85.37,
+      "period": "monthly",
+      "startDate": "2026-07-01T00:00:00.000Z",
+      "endDate": "2026-07-31T00:00:00.000Z",
+      "isActive": true
+    }
+  ],
+  "goals": [
+    {
+      "id": "snapshot-goal-1",
+      "title": "Build savings buffer",
+      "description": "Reach a comfortable cash reserve",
+      "targetAmount": 5000,
+      "currentAmount": 85000,
+      "progress": 100,
+      "targetDate": null,
+      "category": "emergency",
+      "priority": 1,
+      "isCompleted": true,
+      "monthlyContribution": null
+    }
   ]
 }

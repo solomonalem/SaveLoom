@@ -52,6 +52,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="plan"
+        options={{
+          title: "Plan",
+          tabBarIcon: ({ color }) => (
+            <SymbolView name={{ ios: "chart.pie.fill", android: "pie_chart", web: "pie_chart" }} tintColor={color} size={24} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="more"
         options={{
           title: "More",

@@ -9,6 +9,7 @@ React Native app for SaveLoom — lives in the **same repo** as the Next.js web 
 - [x] **Phase 2** — Connected accounts list (Plaid link via web for now)
 - [x] **Phase 3** — Transactions list
 - [x] **Phase 4** — AI insights and recommendations
+- [x] **Phase 5** — Budgets and goals (Plan tab)
 
 ## Prerequisites
 
@@ -90,6 +91,8 @@ npm run android    # Android emulator
 | `GET /api/transactions` | Recent transactions (last 50) |
 | `GET /api/ai/insights` | AI spending insights |
 | `GET /api/recommendations` | Actionable recommendations |
+| `GET /api/budgets` | Active budgets with spending |
+| `GET /api/goals` | Financial goals with progress |
 
 ## Project structure
 

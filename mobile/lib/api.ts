@@ -174,3 +174,47 @@ export async function fetchRecommendations(token: string, limit = 10) {
     token,
   });
 }
+
+export interface Budget {
+  id: string;
+  category: string;
+  amount: number;
+  spent: number;
+  remaining: number;
+  period: string;
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+}
+
+export interface BudgetsResponse {
+  budgets: Budget[];
+  count: number;
+}
+
+export interface FinancialGoal {
+  id: string;
+  title: string;
+  description: string | null;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  targetDate: string | null;
+  category: string;
+  priority: number;
+  isCompleted: boolean;
+  monthlyContribution: number | null;
+}
+
+export interface GoalsResponse {
+  goals: FinancialGoal[];
+  count: number;
+}
+
+export async function fetchBudgets(token: string) {
+  return apiFetch<BudgetsResponse>("/api/budgets", { token });
+}
+
+export async function fetchGoals(token: string) {
+  return apiFetch<GoalsResponse>("/api/goals", { token });
+}
