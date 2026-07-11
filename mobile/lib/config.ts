@@ -23,6 +23,9 @@ export const DEV_BYPASS_AUTH =
 export const DEV_ACCESS_TOKEN =
   process.env.EXPO_PUBLIC_DEV_ACCESS_TOKEN?.trim() ?? "";
 
+/** Production release builds never use dev bypass (__DEV__ is false). */
+export const IS_PRODUCTION = !__DEV__;
+
 export function isDevMockSession(token: string | null): boolean {
   return DEV_BYPASS_AUTH && token === "dev-bypass";
 }

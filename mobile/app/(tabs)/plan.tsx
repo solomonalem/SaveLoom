@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,28 +11,38 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 
-import AccountRow from "@/components/AccountRow";
-import PlaidLinkButton from "@/components/PlaidLinkButton";
-import { useAuth, getDevSnapshotAccounts } from "@/contexts/AuthContext";
-import { fetchBankAccounts, type BankAccount } from "@/lib/api";
-import { getOfflineApiReason, isDevMockSession } from "@/lib/config";
-import { DEV_MOCK_ACCOUNTS } from "@/lib/dev-mock";
-import { formatCurrency } from "@/lib/money";
+import BudgetRow from "@/components/BudgetRow";
+import GoalRow from "@/components/GoalRow";
+import {
+  useAuth,
+  getDevSnapshotBudgets,
+  getDevSnapshotGoals,
+} from "@/contexts/AuthContext";
+import {
+  fetchBudgets,
+  fetchGoals,
+  type Budget,
+  type FinancialGoal,
+} from "@/lib/api";
+import { API_URL, getOfflineApiReason, isDevMockSession } from "@/lib/config";
+import { DEV_MOCK_BUDGETS, DEV_MOCK_GOALS } from "@/lib/dev-mock";
 
-export default function AccountsScreen() {
+export default function PlanScreen() {
   const { token, isLoading: authLoading, usingDevSnapshot, markApiReachable, reconnectLive } =
     useAuth();
-  const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAccounts = useCallback(async () => {
+  const loadPlan = useCallback(async () => {
     if (authLoading) return;
 
     if (isDevMockSession(token)) {
       setError(null);
-      setAccounts(DEV_MOCK_ACCOUNTS);
+      setBudgets(DEV_MOCK_BUDGETS);
+      setGoals(DEV_MOCK_GOALS);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -44,8 +56,12 @@ export default function AccountsScreen() {
 
     try {
       setError(null);
-      const data = await fetchBankAccounts(token);
-      setAccounts(data.accounts);
+      const [budgetsData, goalsData] = await Promise.all([
+        fetchBudgets(token),
+        fetchGoals(token),
+      ]);
+      setBudgets(budgetsData.budgets);
+      setGoals(goalsData.goals);
       if (usingDevSnapshot) {
         markApiReachable();
         void reconnectLive();
@@ -53,9 +69,10 @@ export default function AccountsScreen() {
     } catch (err) {
       if (usingDevSnapshot) {
         setError(null);
-        setAccounts(getDevSnapshotAccounts());
+        setBudgets(getDevSnapshotBudgets());
+        setGoals(getDevSnapshotGoals());
       } else {
-        setError(err instanceof Error ? err.message : "Failed to load accounts");
+        setError(err instanceof Error ? err.message : "Failed to load plan");
       }
     } finally {
       setLoading(false);
@@ -65,29 +82,26 @@ export default function AccountsScreen() {
 
   useEffect(() => {
     setLoading(true);
-    void loadAccounts();
-  }, [loadAccounts]);
+    void loadPlan();
+  }, [loadPlan]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadAccounts();
-    }, [loadAccounts]),
+      void loadPlan();
+    }, [loadPlan]),
   );
 
   const onRefresh = () => {
     setRefreshing(true);
     void (async () => {
       await reconnectLive();
-      await loadAccounts();
+      await loadPlan();
     })();
   };
 
-  const totalBalance = useMemo(
-    () => accounts.reduce((sum, account) => sum + account.currentBalance, 0),
-    [accounts],
-  );
+  const hasContent = budgets.length > 0 || goals.length > 0;
 
-  if ((loading || authLoading) && accounts.length === 0) {
+  if ((loading || authLoading) && !hasContent) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#4f46e5" />
@@ -101,48 +115,51 @@ export default function AccountsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.subtitle}>Connected bank accounts</Text>
+      <Text style={styles.subtitle}>Budgets and savings goals</Text>
 
       {usingDevSnapshot ? (
         <Text style={styles.devBanner}>{getOfflineApiReason()}</Text>
       ) : isDevMockSession(token) ? (
-        <Text style={styles.devBanner}>Dev mode — sample accounts</Text>
+        <Text style={styles.devBanner}>Dev mode — sample budgets and goals</Text>
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {accounts.length > 0 ? (
+      {budgets.length > 0 ? (
         <>
-          <View style={styles.heroCard}>
-            <Text style={styles.heroLabel}>Total balance</Text>
-            <Text style={styles.heroValue}>{formatCurrency(totalBalance)}</Text>
-            <Text style={styles.heroMeta}>
-              {accounts.length} account{accounts.length === 1 ? "" : "s"} connected
-            </Text>
-          </View>
-
+          <Text style={styles.sectionTitle}>Budgets</Text>
           <View style={styles.list}>
-            {accounts.map((account) => (
-              <AccountRow key={account.id} account={account} />
+            {budgets.map((budget) => (
+              <BudgetRow key={budget.id} budget={budget} />
             ))}
           </View>
         </>
-      ) : (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No accounts yet</Text>
-          <Text style={styles.emptyBody}>
-            Connect a bank to import accounts and transactions into SaveLoom.
-          </Text>
-        </View>
-      )}
+      ) : null}
 
-      <View style={styles.linkSection}>
-        <PlaidLinkButton
-          token={token}
-          disabled={isDevMockSession(token) || usingDevSnapshot}
-          onLinked={() => void loadAccounts()}
-        />
-      </View>
+      {goals.length > 0 ? (
+        <>
+          <Text style={[styles.sectionTitle, budgets.length > 0 && styles.sectionTitleSpaced]}>
+            Goals
+          </Text>
+          <View style={styles.list}>
+            {goals.map((goal) => (
+              <GoalRow key={goal.id} goal={goal} />
+            ))}
+          </View>
+        </>
+      ) : null}
+
+      {!hasContent && !error ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No budgets or goals yet</Text>
+          <Text style={styles.emptyBody}>
+            Create budgets and financial goals on the SaveLoom web app, then pull to refresh here.
+          </Text>
+          <Pressable style={styles.linkButton} onPress={() => void Linking.openURL(API_URL)}>
+            <Text style={styles.linkButtonText}>Open web app</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </ScrollView>
   );
 }
@@ -182,29 +199,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  heroCard: {
-    backgroundColor: "#4f46e5",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  heroLabel: {
-    color: "rgba(255,255,255,0.7)",
+  sectionTitle: {
+    marginBottom: 10,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#64748b",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
-  heroValue: {
-    marginTop: 8,
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: "800",
-  },
-  heroMeta: {
-    marginTop: 8,
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 13,
+  sectionTitleSpaced: {
+    marginTop: 20,
   },
   list: {
     gap: 10,
@@ -215,7 +219,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
-    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 17,
@@ -228,7 +231,16 @@ const styles = StyleSheet.create({
     color: "#64748b",
     lineHeight: 20,
   },
-  linkSection: {
+  linkButton: {
     marginTop: 16,
+    backgroundColor: "#4f46e5",
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  linkButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

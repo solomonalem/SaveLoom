@@ -1,6 +1,6 @@
 //src/app/api/plaid/exchange-token/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { plaidClient } from '~/lib/plaid';
 import { db } from '~/server/db';
 import { env } from '~/env';
@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     try {
         console.log('🔄 Token exchange started');
 
-        const session = await auth();
-        if (!session?.user?.id) {
+        const userId = await getRequestUserId(req);
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
                 const savedAccount = await db.bankAccount.create({
                     data: {
-                        userId: session.user.id,
+                        userId,
                         plaidAccountId: account.account_id,
                         plaidItemId: itemId,
                         accountName: account.name,
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         try {
             console.log('👤 Updating user...');
             await db.user.update({
-                where: { id: session.user.id },
+                where: { id: userId },
                 data: {
                     hasConnectedBank: true,
                     plaidAccessTokens: [accessToken],
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
                     await db.transaction.create({
                         data: {
-                            userId: session.user.id,
+                            userId,
                             bankAccountId: bankAccount.id,
                             plaidTransactionId: transaction.transaction_id,
                             amount: -transaction.amount, // Plaid uses positive for debits, we use negative for expenses
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
             if (savedTransactionsCount > 0) {
                 console.log('🧠 Generating initial insights...');
                 try {
-                    await generateUserInsights(db, session.user.id, { useAi: Boolean(env.ANTHROPIC_API_KEY) });
+                    await generateUserInsights(db, userId, { useAi: Boolean(env.ANTHROPIC_API_KEY) });
                     console.log('✅ Generated initial insights after bank connection');
                 } catch (insightError) {
                     console.error('❌ Failed to generate insights:', insightError);

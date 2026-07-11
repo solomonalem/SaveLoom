@@ -1,4 +1,13 @@
-import type { AIInsight, BankAccount, DashboardStats, MobileUser, Recommendation, Transaction } from "@/lib/api";
+import type {
+  AIInsight,
+  BankAccount,
+  Budget,
+  DashboardStats,
+  FinancialGoal,
+  MobileUser,
+  Recommendation,
+  Transaction,
+} from "@/lib/api";
 
 /** Placeholder user while auth is bypassed in development. */
 export const DEV_MOCK_USER: MobileUser = {
@@ -142,5 +151,61 @@ export const DEV_MOCK_RECOMMENDATIONS: Recommendation[] = [
     isRead: false,
     isActioned: false,
     createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
+];
+
+/** Placeholder budgets while auth is bypassed in development. */
+export const DEV_MOCK_BUDGETS: Budget[] = [
+  {
+    id: "dev-budget-1",
+    category: "food_and_drink",
+    amount: 400,
+    spent: 842.5,
+    remaining: -442.5,
+    period: "monthly",
+    startDate: new Date().toISOString(),
+    endDate: null,
+    isActive: true,
+  },
+  {
+    id: "dev-budget-2",
+    category: "transportation",
+    amount: 200,
+    spent: 65,
+    remaining: 135,
+    period: "monthly",
+    startDate: new Date().toISOString(),
+    endDate: null,
+    isActive: true,
+  },
+];
+
+/** Placeholder goals while auth is bypassed in development. */
+export const DEV_MOCK_GOALS: FinancialGoal[] = [
+  {
+    id: "dev-goal-1",
+    title: "Emergency fund",
+    description: "3 months of expenses saved",
+    targetAmount: 10000,
+    currentAmount: 4030.25,
+    progress: 40.3,
+    targetDate: null,
+    category: "emergency",
+    priority: 1,
+    isCompleted: false,
+    monthlyContribution: 300,
+  },
+  {
+    id: "dev-goal-2",
+    title: "Vacation fund",
+    description: "Trip to Japan",
+    targetAmount: 3000,
+    currentAmount: 850,
+    progress: 28.3,
+    targetDate: new Date(Date.now() + 86400000 * 180).toISOString(),
+    category: "vacation",
+    priority: 2,
+    isCompleted: false,
+    monthlyContribution: 150,
   },
 ];

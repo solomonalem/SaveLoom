@@ -9,14 +9,17 @@ React Native app for SaveLoom — lives in the **same repo** as the Next.js web 
 - [x] **Phase 2** — Connected accounts list (Plaid link via web for now)
 - [x] **Phase 3** — Transactions list
 - [x] **Phase 4** — AI insights and recommendations
+- [x] **Phase 5** — Budgets and goals (Plan tab)
+- [x] **Phase 6** — Native Google sign-in, in-app Plaid Link, production config
 
 ## Prerequisites
 
 1. SaveLoom web API running: `npm run dev` (port 3000)
 2. Docker Postgres up
 3. Google OAuth **Web client ID** (same as `AUTH_GOOGLE_ID` in root `.env`)
+4. Plaid sandbox keys in root `.env` (for bank linking)
 
-## Setup
+## Quick start (Expo Go — limited)
 
 ```bash
 cd mobile
@@ -25,45 +28,63 @@ npm install
 npm start
 ```
 
+Expo Go supports **browser Google sign-in** and **web bank linking**. Native Google + Plaid Link require a **development build** (see below).
+
 ### Environment (`mobile/.env`)
 
-```bash
-# iOS simulator / Android emulator / web preview
-EXPO_PUBLIC_API_URL=http://localhost:3000
+See `.env.example`. For a physical device, use a tunnel URL for `EXPO_PUBLIC_API_URL`.
 
-# Physical device (Expo Go) — use ngrok (Google rejects LAN IP redirect URIs)
-# EXPO_PUBLIC_API_URL=https://YOUR-ID.ngrok-free.app
+## Development build (full features)
+
+Native Google sign-in and in-app Plaid Link require a dev build (`com.saveloom.app`):
+
+```bash
+cd mobile
+npm install
+
+# First time — generates android/ and ios/ native projects
+npx expo prebuild
+
+# Android (device or emulator with USB debugging)
+npm run android:build
+
+# iOS (Mac + Xcode)
+npm run ios:build
+
+# After the native app is installed, start Metro for the dev client
+npm run start:dev-client
 ```
 
-### Google sign-in (Expo Go)
+### Google Cloud setup (dev build)
 
-**Why this is tricky:** Google OAuth on mobile has three bad options in Expo Go:
-
-| Approach | Problem |
-|----------|---------|
-| `expo-auth-session` Google provider | **Deprecated** — Android SDK 53+ redirects to google.com after login |
-| Server OAuth with LAN IP (`192.168.x.x`) | Google **rejects** private IP redirect URIs |
-| Native `@react-native-google-signin` | **Best long-term** — requires a dev build, not Expo Go |
-
-**What we use in Expo Go:** browser OAuth through your Next.js API (`lib/web-auth.ts`), with a **public HTTPS ngrok URL** for the API on physical devices.
-
-1. Ensure root `.env` has `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `AUTH_SECRET`
-2. Start the API and ngrok:
+1. **Web client ID** → `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (used for ID token verification)
+2. **Android OAuth client** → package `com.saveloom.app`, SHA-1 from your debug keystore:
    ```bash
-   npm run dev                    # repo root
-   npx ngrok http 3000            # copy the https URL
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
    ```
-3. Set `EXPO_PUBLIC_API_URL=https://YOUR-ID.ngrok-free.app` in `mobile/.env`
-4. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), open your **Web** OAuth client and add:
-   ```
-   https://YOUR-ID.ngrok-free.app/api/mobile/auth/callback
-   ```
-5. **OAuth consent screen → Test users** — add every Gmail you sign in with
-6. Restart Metro and reload the Expo app
+3. **iOS OAuth client** → bundle ID `com.saveloom.app`
 
-**How it works:** app opens Chrome → your API → Google → API exchanges code → redirects to `exp://…/auth/callback?token=JWT` → Expo Go receives the deep link.
+### Plaid Dashboard setup (dev build)
 
-**Production path:** `@react-native-google-signin/google-signin` + `npx expo run:android` (dev build). See [Expo Google auth guide](https://docs.expo.dev/guides/google-authentication/).
+Register in [Plaid Dashboard](https://dashboard.plaid.com/developers/apps):
+
+- Android package: `com.saveloom.app`
+- iOS bundle ID: `com.saveloom.app`
+
+### Sign-in behavior
+
+| Runtime | Google sign-in | Bank linking |
+|---------|----------------|--------------|
+| Expo Go | Browser OAuth via API | Web fallback button |
+| Dev build | Native `@react-native-google-signin` | In-app Plaid Link |
+
+### Production checklist
+
+- Set `EXPO_PUBLIC_DEV_BYPASS_AUTH=false` in `.env`
+- Remove `EXPO_PUBLIC_DEV_ACCESS_TOKEN`
+- Use HTTPS API URL (not localhost)
+- Build release with EAS or `expo run:android --variant release`
+- Register production OAuth clients and Plaid production keys
 
 ### Expo Go version
 
@@ -73,9 +94,10 @@ Play Store Expo Go only supports SDK 54. SaveLoom uses SDK 56 — install Expo G
 
 ```bash
 cd mobile
-npm start          # Expo dev tools
-npm run ios        # iOS simulator
-npm run android    # Android emulator
+npm start              # Expo Go
+npm run start:dev-client   # After installing dev build
+npm run android:build  # Dev build → Android
+npm run ios:build      # Dev build → iOS
 ```
 
 ## API endpoints used
@@ -90,6 +112,10 @@ npm run android    # Android emulator
 | `GET /api/transactions` | Recent transactions (last 50) |
 | `GET /api/ai/insights` | AI spending insights |
 | `GET /api/recommendations` | Actionable recommendations |
+| `GET /api/budgets` | Active budgets with spending |
+| `GET /api/goals` | Financial goals with progress |
+| `POST /api/plaid/link-token` | Create Plaid Link token |
+| `POST /api/plaid/exchange-token` | Connect bank after Plaid success |
 
 ## Project structure
 
@@ -98,9 +124,12 @@ mobile/
 ├── app/
 │   ├── (auth)/login.tsx
 │   ├── auth/callback.tsx   # Deep-link handler after sign-in
-│   └── (tabs)/             # Dashboard, Accounts, Insights, More
-├── contexts/AuthContext.tsx
-├── lib/web-auth.ts         # Browser-based Google sign-in
+│   └── (tabs)/             # Dashboard, Accounts, Transactions, Insights, Plan, More
+├── components/PlaidLinkButton.tsx
+├── lib/native-google-auth.ts
+├── lib/plaid-link.ts
+├── lib/sign-in.ts
+├── lib/web-auth.ts         # Browser OAuth fallback (Expo Go)
 ├── lib/api.ts
 └── lib/config.ts
 ```

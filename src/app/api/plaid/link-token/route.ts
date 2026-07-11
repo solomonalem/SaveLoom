@@ -1,23 +1,23 @@
 //src/app/api/plaid/link-token/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { plaidClient } from '~/lib/plaid';
 
 export async function POST(req: NextRequest) {
     try {
         console.log('🔍 Link token route called');
 
-        const session = await auth();
+        const userId = await getRequestUserId(req);
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('🏦 Creating link token for user:', session.user.id);
+        console.log('🏦 Creating link token for user:', userId);
 
         const response = await plaidClient.linkTokenCreate({
             user: {
-                client_user_id: session.user.id,
+                client_user_id: userId,
             },
             client_name: 'SaveLoom',
             products: ['transactions'],

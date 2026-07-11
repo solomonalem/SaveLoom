@@ -1,17 +1,18 @@
 // src/app/api/goals/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { db } from '~/server/db';
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
+        const userId = await getRequestUserId(req);
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const goals = await db.financialGoal.findMany({
-            where: { userId: session.user.id },
+            where: { userId },
             orderBy: [
                 { isCompleted: 'asc' },
                 { priority: 'asc' }

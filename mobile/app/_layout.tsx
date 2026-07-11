@@ -7,6 +7,7 @@ import "react-native-reanimated";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DEV_BYPASS_AUTH } from "@/lib/config";
+import { configureNativeGoogleSignIn } from "@/lib/native-google-auth";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -24,8 +25,10 @@ function NavigationGuard({ children }: { children: React.ReactNode }) {
     const isAuthCallback = segments[0] === "auth";
 
     if (DEV_BYPASS_AUTH) {
-      if (inAuthGroup || isAuthCallback) {
+      if (user && (inAuthGroup || isAuthCallback)) {
         router.replace("/(tabs)");
+      } else if (!user && !inAuthGroup && !isAuthCallback) {
+        router.replace("/(auth)/login");
       }
       return;
     }
@@ -52,6 +55,10 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+
+  useEffect(() => {
+    configureNativeGoogleSignIn();
+  }, []);
 
   useEffect(() => {
     if (error) throw error;

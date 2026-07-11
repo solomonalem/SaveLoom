@@ -1,26 +1,27 @@
 // src/app/api/budgets/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { db } from '~/server/db';
 
 export async function GET(req: NextRequest) {
     try {
         console.log('🔍 GET /api/budgets - Starting...');
 
-        const session = await auth();
-        console.log('👤 Session:', session?.user?.id ? 'Found' : 'Not found');
+        const userId = await getRequestUserId(req);
+        console.log('👤 Session:', userId ? 'Found' : 'Not found');
 
-        if (!session?.user?.id) {
+        if (!userId) {
             console.log('❌ Unauthorized access attempt');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('📊 Fetching budgets for user:', session.user.id);
+        console.log('📊 Fetching budgets for user:', userId);
 
         // Get user's budgets with calculated spending
         const budgets = await db.budget.findMany({
             where: {
-                userId: session.user.id,
+                userId,
                 isActive: true
             },
             orderBy: {
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
                     // Get transactions in the budget period for this category
                     const transactions = await db.transaction.findMany({
                         where: {
-                            userId: session.user.id,
+                            userId,
                             category: budget.category,
                             amount: {
                                 lt: 0 // Only expenses (negative amounts)
