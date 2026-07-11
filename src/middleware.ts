@@ -10,6 +10,8 @@ const MOBILE_API_PREFIXES = [
   "/api/recommendations",
   "/api/budgets",
   "/api/goals",
+  "/api/plaid/link-token",
+  "/api/plaid/exchange-token",
 ];
 
 function isMobileApi(pathname: string): boolean {
@@ -52,5 +54,7 @@ export const config = {
     "/api/recommendations",
     "/api/budgets",
     "/api/goals",
+    "/api/plaid/link-token",
+    "/api/plaid/exchange-token",
   ],
 };
