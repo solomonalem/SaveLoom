@@ -1,17 +1,15 @@
-import { NextResponse } from "next/server";
-import { auth } from "~/server/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getRequestUserId } from "~/server/request-auth";
 import { db } from "~/server/db";
 import { computeSavingsRate, parseMoney } from "~/lib/money";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
+    const userId = await getRequestUserId(req);
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const userId = session.user.id;
 
     const [accounts, transactions, transactionCount] = await Promise.all([
       db.bankAccount.findMany({
