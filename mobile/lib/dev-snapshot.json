@@ -20,5 +20,106 @@
     "topCategory": "Other",
     "topCategoryAmount": 214.63,
     "hasRecentActivity": true
-  }
+  },
+  "accounts": [
+    {
+      "id": "snapshot-1",
+      "accountName": "Plaid Checking",
+      "bankName": "Chase",
+      "accountType": "checking",
+      "currentBalance": 42000,
+      "availableBalance": 42000,
+      "mask": "0000",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "snapshot-2",
+      "accountName": "Plaid Saving",
+      "bankName": "Chase",
+      "accountType": "savings",
+      "currentBalance": 85000,
+      "availableBalance": 85000,
+      "mask": "1111",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "snapshot-3",
+      "accountName": "Plaid Credit Card",
+      "bankName": "American Express",
+      "accountType": "credit",
+      "currentBalance": -2433.2,
+      "availableBalance": null,
+      "mask": "3333",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "snapshot-tx-1",
+      "amount": -12.5,
+      "description": "UBER TRIP",
+      "merchantName": "Uber",
+      "category": "transportation",
+      "subcategory": null,
+      "date": "2026-07-01T12:00:00.000Z",
+      "bankAccount": { "accountName": "Plaid Checking", "bankName": "Chase" }
+    },
+    {
+      "id": "snapshot-tx-2",
+      "amount": -45.99,
+      "description": "WHOLE FOODS",
+      "merchantName": "Whole Foods",
+      "category": "food_and_drink",
+      "subcategory": null,
+      "date": "2026-06-28T18:30:00.000Z",
+      "bankAccount": { "accountName": "Plaid Checking", "bankName": "Chase" }
+    },
+    {
+      "id": "snapshot-tx-3",
+      "amount": 500,
+      "description": "TRANSFER IN",
+      "merchantName": null,
+      "category": "income",
+      "subcategory": null,
+      "date": "2026-06-25T09:00:00.000Z",
+      "bankAccount": { "accountName": "Plaid Saving", "bankName": "Chase" }
+    }
+  ],
+  "insights": [
+    {
+      "id": "snapshot-insight-1",
+      "type": "budget_alert",
+      "title": "Food spending above typical",
+      "content": "Your food and drink category is trending higher than your 90-day average.",
+      "timeframe": "this_month",
+      "metric": "spending",
+      "value": 214.63,
+      "change": 12.5,
+      "createdAt": "2026-07-01T10:00:00.000Z",
+      "isRead": false,
+      "priority": "medium"
+    }
+  ],
+  "recommendations": [
+    {
+      "id": "snapshot-rec-1",
+      "type": "saving",
+      "category": "subscription_optimization",
+      "title": "Review recurring subscriptions",
+      "description": "You have multiple streaming and software subscriptions. Audit them for unused services.",
+      "impact": "Save up to $25/month",
+      "priority": "high",
+      "confidence": 0.75,
+      "potentialSavings": 25,
+      "isRead": false,
+      "isActioned": false,
+      "createdAt": "2026-07-01T10:00:00.000Z"
+    }
+  ]
 }

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,27 +9,27 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 
-import AccountRow from "@/components/AccountRow";
-import { useAuth, getDevSnapshotAccounts } from "@/contexts/AuthContext";
-import { fetchBankAccounts, type BankAccount } from "@/lib/api";
-import { API_URL, DEV_BYPASS_AUTH, getOfflineApiReason, isDevMockSession } from "@/lib/config";
-import { DEV_MOCK_ACCOUNTS } from "@/lib/dev-mock";
+import TransactionRow from "@/components/TransactionRow";
+import { useAuth, getDevSnapshotTransactions } from "@/contexts/AuthContext";
+import { fetchTransactions, type Transaction } from "@/lib/api";
+import { getOfflineApiReason, isDevMockSession } from "@/lib/config";
+import { DEV_MOCK_TRANSACTIONS } from "@/lib/dev-mock";
 import { formatCurrency } from "@/lib/money";
 
-export default function AccountsScreen() {
+export default function TransactionsScreen() {
   const { token, isLoading: authLoading, usingDevSnapshot, markApiReachable, reconnectLive } =
     useAuth();
-  const [accounts, setAccounts] = useState<BankAccount[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadAccounts = useCallback(async () => {
+  const loadTransactions = useCallback(async () => {
     if (authLoading) return;
 
     if (isDevMockSession(token)) {
       setError(null);
-      setAccounts(DEV_MOCK_ACCOUNTS);
+      setTransactions(DEV_MOCK_TRANSACTIONS);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -45,8 +43,8 @@ export default function AccountsScreen() {
 
     try {
       setError(null);
-      const data = await fetchBankAccounts(token);
-      setAccounts(data.accounts);
+      const data = await fetchTransactions(token);
+      setTransactions(data.transactions);
       if (usingDevSnapshot) {
         markApiReachable();
         void reconnectLive();
@@ -54,9 +52,9 @@ export default function AccountsScreen() {
     } catch (err) {
       if (usingDevSnapshot) {
         setError(null);
-        setAccounts(getDevSnapshotAccounts());
+        setTransactions(getDevSnapshotTransactions());
       } else {
-        setError(err instanceof Error ? err.message : "Failed to load accounts");
+        setError(err instanceof Error ? err.message : "Failed to load transactions");
       }
     } finally {
       setLoading(false);
@@ -66,33 +64,34 @@ export default function AccountsScreen() {
 
   useEffect(() => {
     setLoading(true);
-    void loadAccounts();
-  }, [loadAccounts]);
+    void loadTransactions();
+  }, [loadTransactions]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadAccounts();
-    }, [loadAccounts]),
+      void loadTransactions();
+    }, [loadTransactions]),
   );
 
   const onRefresh = () => {
     setRefreshing(true);
     void (async () => {
       await reconnectLive();
-      await loadAccounts();
+      await loadTransactions();
     })();
   };
 
-  const totalBalance = useMemo(
-    () => accounts.reduce((sum, account) => sum + account.currentBalance, 0),
-    [accounts],
-  );
+  const summary = useMemo(() => {
+    const expenses = transactions
+      .filter((tx) => tx.amount < 0)
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    const income = transactions
+      .filter((tx) => tx.amount > 0)
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    return { expenses, income, count: transactions.length };
+  }, [transactions]);
 
-  const openWebConnect = () => {
-    void Linking.openURL(API_URL);
-  };
-
-  if ((loading || authLoading) && accounts.length === 0) {
+  if ((loading || authLoading) && transactions.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#4f46e5" />
@@ -106,49 +105,51 @@ export default function AccountsScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text style={styles.subtitle}>Connected bank accounts</Text>
+      <Text style={styles.subtitle}>Recent activity</Text>
 
       {usingDevSnapshot ? (
         <Text style={styles.devBanner}>{getOfflineApiReason()}</Text>
       ) : isDevMockSession(token) ? (
-        <Text style={styles.devBanner}>Dev mode — sample accounts</Text>
+        <Text style={styles.devBanner}>Dev mode — sample transactions</Text>
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      {accounts.length > 0 ? (
+      {transactions.length > 0 ? (
         <>
-          <View style={styles.heroCard}>
-            <Text style={styles.heroLabel}>Total balance</Text>
-            <Text style={styles.heroValue}>{formatCurrency(totalBalance)}</Text>
-            <Text style={styles.heroMeta}>
-              {accounts.length} account{accounts.length === 1 ? "" : "s"} connected
-            </Text>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Spent</Text>
+              <Text style={[styles.summaryValue, styles.summaryExpense]}>
+                {formatCurrency(summary.expenses)}
+              </Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Income</Text>
+              <Text style={[styles.summaryValue, styles.summaryIncome]}>
+                {formatCurrency(summary.income)}
+              </Text>
+            </View>
           </View>
 
+          <Text style={styles.listHeading}>
+            {summary.count} transaction{summary.count === 1 ? "" : "s"}
+          </Text>
+
           <View style={styles.list}>
-            {accounts.map((account) => (
-              <AccountRow key={account.id} account={account} />
+            {transactions.map((transaction) => (
+              <TransactionRow key={transaction.id} transaction={transaction} />
             ))}
           </View>
         </>
       ) : (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyTitle}>No accounts yet</Text>
+          <Text style={styles.emptyTitle}>No transactions yet</Text>
           <Text style={styles.emptyBody}>
-            Connect a bank on the SaveLoom web app to see your accounts here.
+            Connect a bank on the web app to import transactions, then pull to refresh here.
           </Text>
         </View>
       )}
-
-      <Pressable style={styles.connectButton} onPress={openWebConnect}>
-        <Text style={styles.connectButtonText}>Connect a bank on web</Text>
-      </Pressable>
-
-      <Text style={styles.footerNote}>
-        Plaid linking in the mobile app is coming soon. For now, use the web dashboard to add or
-        reconnect banks.
-      </Text>
     </ScrollView>
   );
 }
@@ -188,29 +189,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  heroCard: {
-    backgroundColor: "#4f46e5",
-    borderRadius: 20,
-    padding: 20,
+  summaryRow: {
+    flexDirection: "row",
+    gap: 12,
     marginBottom: 16,
   },
-  heroLabel: {
-    color: "rgba(255,255,255,0.7)",
+  summaryCard: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.7)",
+  },
+  summaryLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  summaryValue: {
+    marginTop: 6,
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  summaryExpense: {
+    color: "#dc2626",
+  },
+  summaryIncome: {
+    color: "#059669",
+  },
+  listHeading: {
+    marginBottom: 10,
     fontSize: 12,
     fontWeight: "600",
+    color: "#64748b",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  heroValue: {
-    marginTop: 8,
-    color: "#fff",
-    fontSize: 32,
-    fontWeight: "800",
-  },
-  heroMeta: {
-    marginTop: 8,
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 13,
+    letterSpacing: 0.4,
   },
   list: {
     gap: 10,
@@ -221,7 +238,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.7)",
-    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 17,
@@ -233,24 +249,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#64748b",
     lineHeight: 20,
-  },
-  connectButton: {
-    marginTop: 16,
-    backgroundColor: "#4f46e5",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  connectButtonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  footerNote: {
-    marginTop: 12,
-    fontSize: 12,
-    color: "#94a3b8",
-    textAlign: "center",
-    lineHeight: 18,
   },
 });

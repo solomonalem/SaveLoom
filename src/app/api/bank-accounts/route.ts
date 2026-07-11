@@ -1,21 +1,21 @@
 //src/app/api/bank-accounts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { parseMoney } from "~/lib/money";
-import { auth } from '~/server/auth';
+import { getRequestUserId } from "~/server/request-auth";
 import { db } from '~/server/db';
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await auth();
+        const userId = await getRequestUserId(req);
 
-        if (!session?.user?.id) {
+        if (!userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         // Fetch user's bank accounts
         const accounts = await db.bankAccount.findMany({
             where: {
-                userId: session.user.id,
+                userId,
                 isActive: true,
             },
             orderBy: {

@@ -11,7 +11,7 @@ import {
 import StatCard from "@/components/StatCard";
 import { useAuth, getDevSnapshotStats } from "@/contexts/AuthContext";
 import { fetchDashboardStats, type DashboardStats } from "@/lib/api";
-import { DEV_BYPASS_AUTH, isDevMockSession } from "@/lib/config";
+import { DEV_BYPASS_AUTH, getOfflineApiReason, isDevMockSession } from "@/lib/config";
 import { DEV_MOCK_STATS } from "@/lib/dev-mock";
 import {
   formatCurrency,
@@ -21,7 +21,8 @@ import {
 import { useFocusEffect } from "expo-router";
 
 export default function DashboardScreen() {
-  const { token, user, isLoading: authLoading, usingDevSnapshot } = useAuth();
+  const { token, user, isLoading: authLoading, usingDevSnapshot, markApiReachable, reconnectLive } =
+    useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,14 +39,6 @@ export default function DashboardScreen() {
       return;
     }
 
-    if (usingDevSnapshot) {
-      setError(null);
-      setStats(getDevSnapshotStats());
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
     if (!token) {
       setLoading(false);
       setRefreshing(false);
@@ -56,13 +49,22 @@ export default function DashboardScreen() {
       setError(null);
       const data = await fetchDashboardStats(token);
       setStats(data);
+      if (usingDevSnapshot) {
+        markApiReachable();
+        void reconnectLive();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      if (usingDevSnapshot) {
+        setError(null);
+        setStats(getDevSnapshotStats());
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [authLoading, token, usingDevSnapshot]);
+  }, [authLoading, token, usingDevSnapshot, markApiReachable, reconnectLive]);
 
   useEffect(() => {
     setLoading(true);
@@ -77,7 +79,10 @@ export default function DashboardScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    void loadStats();
+    void (async () => {
+      await reconnectLive();
+      await loadStats();
+    })();
   };
 
   if ((loading || authLoading) && !stats) {
@@ -100,9 +105,7 @@ export default function DashboardScreen() {
       <Text style={styles.subtitle}>Your financial overview</Text>
 
       {usingDevSnapshot ? (
-        <Text style={styles.devBanner}>
-          Offline dev snapshot — your real SaveLoom data (refresh when API is reachable)
-        </Text>
+        <Text style={styles.devBanner}>{getOfflineApiReason()}</Text>
       ) : isDevMockSession(token) ? (
         <Text style={styles.devBanner}>
           Dev mode — sample data. Get a real token at /dev/mobile-token on the web app.
