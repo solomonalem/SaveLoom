@@ -27,6 +27,22 @@ export function isDevMockSession(token: string | null): boolean {
   return DEV_BYPASS_AUTH && token === "dev-bypass";
 }
 
+export function isLocalApiUrl(): boolean {
+  return /localhost|127\.0\.0\.1|10\.0\.2\.2/.test(API_URL);
+}
+
+/** Short reason Expo is showing cached data instead of live API. */
+export function getOfflineApiReason(): string {
+  if (isLocalApiUrl() && Platform.OS !== "web") {
+    return (
+      `Expo on your ${Platform.OS === "ios" ? "phone" : "device"} can't reach localhost — ` +
+      `that's your phone, not your Mac. Point EXPO_PUBLIC_API_URL to a tunnel URL ` +
+      `(cloudflared/ngrok) and restart Metro.`
+    );
+  }
+  return `Can't reach ${API_URL}. Run npm run dev at repo root, then pull to refresh.`;
+}
+
 /** Warn when Google OAuth is likely to fail on a physical device. */
 export function getGoogleSignInSetupHint(): string | null {
   if (DEV_BYPASS_AUTH || Platform.OS === "web") return null;

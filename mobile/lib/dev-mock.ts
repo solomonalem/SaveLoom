@@ -1,4 +1,4 @@
-import type { DashboardStats, MobileUser } from "@/lib/api";
+import type { BankAccount, DashboardStats, MobileUser } from "@/lib/api";
 
 /** Placeholder user while auth is bypassed in development. */
 export const DEV_MOCK_USER: MobileUser = {
@@ -24,3 +24,31 @@ export const DEV_MOCK_STATS: DashboardStats = {
   topCategoryAmount: 842.5,
   hasRecentActivity: true,
 };
+
+/** Placeholder accounts while auth is bypassed in development. */
+export const DEV_MOCK_ACCOUNTS: BankAccount[] = [
+  {
+    id: "dev-checking",
+    accountName: "Everyday Checking",
+    bankName: "Chase",
+    accountType: "checking",
+    currentBalance: 8420.5,
+    availableBalance: 8420.5,
+    mask: "4821",
+    syncStatus: "active",
+    lastSync: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "dev-savings",
+    accountName: "High Yield Savings",
+    bankName: "Ally Bank",
+    accountType: "savings",
+    currentBalance: 4030.25,
+    availableBalance: 4030.25,
+    mask: "9103",
+    syncStatus: "active",
+    lastSync: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  },
+];

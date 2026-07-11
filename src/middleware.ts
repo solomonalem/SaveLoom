@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const MOBILE_API_PREFIXES = ["/api/mobile", "/api/dashboard/stats"];
+const MOBILE_API_PREFIXES = [
+  "/api/mobile",
+  "/api/dashboard/stats",
+  "/api/bank-accounts",
+];
 
 function isMobileApi(pathname: string): boolean {
   return MOBILE_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -34,5 +38,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/mobile/:path*", "/api/dashboard/stats"],
+  matcher: ["/api/mobile/:path*", "/api/dashboard/stats", "/api/bank-accounts"],
 };

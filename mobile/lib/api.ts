@@ -66,6 +66,24 @@ export interface DashboardStats {
   hasRecentActivity: boolean;
 }
 
+export interface BankAccount {
+  id: string;
+  accountName: string;
+  bankName: string;
+  accountType: string;
+  currentBalance: number;
+  availableBalance: number | null;
+  mask: string | null;
+  syncStatus: string;
+  lastSync: string | null;
+  createdAt: string;
+}
+
+export interface BankAccountsResponse {
+  accounts: BankAccount[];
+  count: number;
+}
+
 export async function signInWithGoogleIdToken(idToken: string) {
   return apiFetch<{ accessToken: string; user: MobileUser }>("/api/mobile/auth/google", {
     method: "POST",
@@ -79,4 +97,8 @@ export async function fetchCurrentUser(token: string) {
 
 export async function fetchDashboardStats(token: string) {
   return apiFetch<DashboardStats>("/api/dashboard/stats", { token });
+}
+
+export async function fetchBankAccounts(token: string) {
+  return apiFetch<BankAccountsResponse>("/api/bank-accounts", { token });
 }

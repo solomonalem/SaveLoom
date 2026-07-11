@@ -20,5 +20,43 @@
     "topCategory": "Other",
     "topCategoryAmount": 214.63,
     "hasRecentActivity": true
-  }
+  },
+  "accounts": [
+    {
+      "id": "snapshot-1",
+      "accountName": "Plaid Checking",
+      "bankName": "Chase",
+      "accountType": "checking",
+      "currentBalance": 42000,
+      "availableBalance": 42000,
+      "mask": "0000",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "snapshot-2",
+      "accountName": "Plaid Saving",
+      "bankName": "Chase",
+      "accountType": "savings",
+      "currentBalance": 85000,
+      "availableBalance": 85000,
+      "mask": "1111",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "snapshot-3",
+      "accountName": "Plaid Credit Card",
+      "bankName": "American Express",
+      "accountType": "credit",
+      "currentBalance": -2433.2,
+      "availableBalance": null,
+      "mask": "3333",
+      "syncStatus": "active",
+      "lastSync": null,
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
 }
