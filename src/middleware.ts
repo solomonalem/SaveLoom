@@ -5,6 +5,7 @@ const MOBILE_API_PREFIXES = [
   "/api/mobile",
   "/api/dashboard/stats",
   "/api/bank-accounts",
+  "/api/transactions",
 ];
 
 function isMobileApi(pathname: string): boolean {
@@ -38,5 +39,10 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/mobile/:path*", "/api/dashboard/stats", "/api/bank-accounts"],
+  matcher: [
+    "/api/mobile/:path*",
+    "/api/dashboard/stats",
+    "/api/bank-accounts",
+    "/api/transactions",
+  ],
 };

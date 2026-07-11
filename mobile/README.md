@@ -7,7 +7,7 @@ React Native app for SaveLoom — lives in the **same repo** as the Next.js web 
 - [x] **Phase 0** — Google sign-in, JWT auth, API client
 - [x] **Phase 1** — Tab shell + dashboard stats
 - [x] **Phase 2** — Connected accounts list (Plaid link via web for now)
-- [ ] Phase 3 — Transactions
+- [x] **Phase 3** — Transactions list
 
 ## Prerequisites
 
@@ -86,6 +86,7 @@ npm run android    # Android emulator
 | `GET /api/mobile/me` | Current user (Bearer token) |
 | `GET /api/dashboard/stats` | Dashboard metrics |
 | `GET /api/bank-accounts` | Connected bank accounts |
+| `GET /api/transactions` | Recent transactions (last 50) |
 
 ## Project structure
 

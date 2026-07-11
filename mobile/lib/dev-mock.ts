@@ -1,4 +1,4 @@
-import type { BankAccount, DashboardStats, MobileUser } from "@/lib/api";
+import type { BankAccount, DashboardStats, MobileUser, Transaction } from "@/lib/api";
 
 /** Placeholder user while auth is bypassed in development. */
 export const DEV_MOCK_USER: MobileUser = {
@@ -50,5 +50,49 @@ export const DEV_MOCK_ACCOUNTS: BankAccount[] = [
     syncStatus: "active",
     lastSync: new Date().toISOString(),
     createdAt: new Date().toISOString(),
+  },
+];
+
+/** Placeholder transactions while auth is bypassed in development. */
+export const DEV_MOCK_TRANSACTIONS: Transaction[] = [
+  {
+    id: "dev-tx-1",
+    amount: -42.18,
+    description: "STARBUCKS STORE 12345",
+    merchantName: "Starbucks",
+    category: "food_and_drink",
+    subcategory: null,
+    date: new Date(Date.now() - 86400000).toISOString(),
+    bankAccount: { accountName: "Everyday Checking", bankName: "Chase" },
+  },
+  {
+    id: "dev-tx-2",
+    amount: -128.5,
+    description: "AMAZON MARKETPLACE",
+    merchantName: "Amazon",
+    category: "shopping",
+    subcategory: null,
+    date: new Date(Date.now() - 86400000 * 3).toISOString(),
+    bankAccount: { accountName: "Everyday Checking", bankName: "Chase" },
+  },
+  {
+    id: "dev-tx-3",
+    amount: 2600,
+    description: "DIRECT DEPOSIT PAYROLL",
+    merchantName: "Employer Inc",
+    category: "income",
+    subcategory: null,
+    date: new Date(Date.now() - 86400000 * 5).toISOString(),
+    bankAccount: { accountName: "Everyday Checking", bankName: "Chase" },
+  },
+  {
+    id: "dev-tx-4",
+    amount: -65,
+    description: "SHELL OIL",
+    merchantName: "Shell",
+    category: "transportation",
+    subcategory: null,
+    date: new Date(Date.now() - 86400000 * 7).toISOString(),
+    bankAccount: { accountName: "Everyday Checking", bankName: "Chase" },
   },
 ];

@@ -102,3 +102,26 @@ export async function fetchDashboardStats(token: string) {
 export async function fetchBankAccounts(token: string) {
   return apiFetch<BankAccountsResponse>("/api/bank-accounts", { token });
 }
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  description: string;
+  merchantName: string | null;
+  category: string;
+  subcategory: string | null;
+  date: string;
+  bankAccount?: {
+    accountName: string;
+    bankName: string;
+  };
+}
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+  count: number;
+}
+
+export async function fetchTransactions(token: string) {
+  return apiFetch<TransactionsResponse>("/api/transactions", { token });
+}

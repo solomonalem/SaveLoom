@@ -213,3 +213,7 @@ export function getDevSnapshotStats() {
 export function getDevSnapshotAccounts() {
   return (devSnapshot as { accounts?: import("@/lib/api").BankAccount[] }).accounts ?? [];
 }
+
+export function getDevSnapshotTransactions() {
+  return (devSnapshot as { transactions?: import("@/lib/api").Transaction[] }).transactions ?? [];
+}
